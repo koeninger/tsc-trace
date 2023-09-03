@@ -20,7 +20,7 @@ fn macroed() {
 
 fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("tsc");
-    let mut group = group.measurement_time(Duration::from_millis(1000)).warm_up_time(Duration::from_millis(1000));
+    let group = group.measurement_time(Duration::from_millis(1000)).warm_up_time(Duration::from_millis(1000));
     group.bench_function("direct", |b| b.iter(|| black_box(direct())));
     group.bench_function("macroed", |b| b.iter(|| black_box(macroed())));
 }

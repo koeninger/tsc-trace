@@ -13,6 +13,7 @@ capacity_16_million = []
 capacity_32_million = []
 capacity_64_million = []
 off = []
+lfence = []
 
 [dependencies]
 

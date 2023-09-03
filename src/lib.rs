@@ -53,14 +53,31 @@ impl Drop for Printer {
 #[cfg(target_arch = "x86")]
 pub fn rdtsc() -> u64 {
     use core::arch::x86::_rdtsc;
-    unsafe { _rdtsc() }
+    #[cfg(feature = "lfence")]
+    use core::arch::x86::_mm_lfence;
+    unsafe {
+        #[cfg(feature = "lfence")]
+        _mm_lfence();
+        let r = _rdtsc();
+        #[cfg(feature = "lfence")]
+        _mm_lfence();
+        r
+    }
 }
 
 #[inline(always)]
 #[cfg(target_arch = "x86_64")]
 pub fn rdtsc() -> u64 {
     use core::arch::x86_64::_rdtsc;
-    unsafe { _rdtsc() }
+    use core::arch::x86_64::_mm_lfence;
+    unsafe {
+        #[cfg(feature = "lfence")]
+        _mm_lfence();
+        let r = _rdtsc();
+        #[cfg(feature = "lfence")]
+        _mm_lfence();
+        r
+    }
 }
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
@@ -68,12 +85,14 @@ pub fn rdtsc() -> u64 {
     unimplemented!("x86 needed for rdtsc")
 }
 
+/// Use the trace! macro, do not use this directly.
 pub struct Span {
     tag: u64,
     start: u64,
 }
 
 impl Span {
+    /// Do not call this, use the trace! macro instead
     pub fn new(tag: u64) -> Self {
         Span {
             tag,
