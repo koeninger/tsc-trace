@@ -7,6 +7,11 @@ edition = "2021"
 
 [features]
 default = []
+capacity_1_million = []
+capacity_8_million = []
+capacity_16_million = []
+capacity_32_million = []
+capacity_64_million = []
 off = []
 
 [dependencies]

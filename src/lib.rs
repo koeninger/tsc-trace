@@ -1,9 +1,26 @@
 use std::cell::{ RefCell, Cell };
 
-#[cfg(not(feature = "off"))]
+#[cfg(all(not(feature = "off"), feature = "capacity_1_million"))]
 const CAPACITY: usize = 1_000_000 * 3;
 
+#[cfg(all(not(feature = "off"), feature = "capacity_8_million"))]
+const CAPACITY: usize = 8_000_000 * 3;
+
+#[cfg(all(not(feature = "off"), feature = "capacity_16_million"))]
+const CAPACITY: usize = 16_000_000 * 3;
+
+#[cfg(all(not(feature = "off"), feature = "capacity_32_million"))]
+const CAPACITY: usize = 32_000_000 * 3;
+
+#[cfg(all(not(feature = "off"), feature = "capacity_64_million"))]
+const CAPACITY: usize = 64_000_000 * 3;
+
 #[cfg(feature = "off")]
+const CAPACITY: usize = 0;
+
+#[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
+compile_error!("tsc-trace requires enabling exactly one of the features 'capacity_1_million' ... 'capacity_64_million', or 'off'");
+#[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
 const CAPACITY: usize = 0;
 
 thread_local! {
@@ -13,6 +30,7 @@ thread_local! {
 
 pub struct Printer {}
 
+// TODO replace with macro
 pub fn print_traces() {
     TSC_TRACE_SPANS.with(|spans| {
         let spans = spans.borrow();
