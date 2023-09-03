@@ -6,8 +6,11 @@ enum Traces {
 }
 
 fn main() {
+    let _p = Printer {};
     trace!(Traces::Main);
-    some_function();
+    for _ in 1..10 {
+        some_function();
+    }
 }
 
 #[inline]
