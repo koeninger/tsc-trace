@@ -29,4 +29,5 @@ fn main() -> std::io::Result<()> {
 #[inline]
 fn some_function() {
     trace!(Traces::SomeFunction);
+    println!("doing some work in some_function");
 }
