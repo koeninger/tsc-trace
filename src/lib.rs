@@ -1,38 +1,27 @@
-use std::cell::RefCell;
+use std::cell::{ RefCell, Cell };
 
 #[cfg(not(feature = "off"))]
-const CAPACITY: usize = 86510731;
+const CAPACITY: usize = 1_000_000 * 3;
 
 #[cfg(feature = "off")]
 const CAPACITY: usize = 0;
 
 thread_local! {
-    static TSC_TRACE_START: RefCell<Vec<u64>> = RefCell::new(Vec::with_capacity(CAPACITY));
-
-    static TSC_TRACE_STOP: RefCell<Vec<u64>> = RefCell::new(Vec::with_capacity(CAPACITY));
-
-    static TSC_TRACE_TAG: RefCell<Vec<u8>> = RefCell::new(Vec::with_capacity(CAPACITY));
-}
-
-/// how many traces have been recorded
-pub fn len() -> usize {
-    TSC_TRACE_TAG.with(|v| v.borrow().len())    
+    static TSC_TRACE_SPANS: RefCell<[u64; CAPACITY]> = const { RefCell::new([0; CAPACITY]) };
+    static TSC_TRACE_INDEX: Cell<usize> = const { Cell::new(0) };
 }
 
 pub struct Printer {}
 
 pub fn print_traces() {
-    TSC_TRACE_TAG.with(|tags| {
-        TSC_TRACE_START.with(|starts| {
-            TSC_TRACE_STOP.with(|stops| {
-                let tags = tags.borrow();
-                let starts = starts.borrow();
-                let stops = stops.borrow();
-                for ((start, stop), tag) in starts.iter().zip(stops.iter()).zip(tags.iter()) {
-                    println!("{tag} {start} {stop} {}", stop - start);
-                }
-            })
-        })
+    TSC_TRACE_SPANS.with(|spans| {
+        let spans = spans.borrow();
+        for i in (0..CAPACITY).step_by(3) {
+            let tag = spans[i];
+            let start = spans[i+1];
+            let stop = spans[i+2];
+            println!("{tag} {start} {stop} {}", stop - start);
+        }
     });
 }
 
@@ -62,12 +51,12 @@ pub fn rdtsc() -> u64 {
 }
 
 pub struct Span {
-    tag: u8,
+    tag: u64,
     start: u64,
 }
 
 impl Span {
-    pub fn new(tag: u8) -> Self {
+    pub fn new(tag: u64) -> Self {
         Span {
             tag,
             start: rdtsc(),
@@ -78,9 +67,22 @@ impl Span {
 impl Drop for Span {
     fn drop(&mut self) {
         let stop = rdtsc();
-        TSC_TRACE_START.with(|v| v.borrow_mut().push(self.start));
-        TSC_TRACE_STOP.with(|v| v.borrow_mut().push(stop));
-        TSC_TRACE_TAG.with(|v| v.borrow_mut().push(self.tag));
+        TSC_TRACE_INDEX.with(|index| {
+            let mut i = index.get();
+            if i >= CAPACITY {
+                i = 0;
+            }
+            TSC_TRACE_SPANS.with(|spans| {
+                let mut spans = spans.borrow_mut();
+                spans[i] = self.tag;
+                i += 1;
+                spans[i] = self.start;
+                i += 1;
+                spans[i] = stop;
+                i += 1;
+            });
+            index.set(i);
+        })
     }
 }
 
@@ -88,7 +90,7 @@ impl Drop for Span {
 #[cfg(not(feature = "off"))]
 macro_rules! trace {
     ($e:expr) => {
-        let _tsc_trace_span = Span::new($e as u8);
+        let _tsc_trace_span = Span::new(($e) as u64);
     };
 }
 

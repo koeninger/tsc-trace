@@ -23,7 +23,6 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut group = group.measurement_time(Duration::from_millis(1000)).warm_up_time(Duration::from_millis(1000));
     group.bench_function("direct", |b| b.iter(|| black_box(direct())));
     group.bench_function("macroed", |b| b.iter(|| black_box(macroed())));
-    println!("traces: {}", tsc_trace::len());
 }
 
 criterion_group!(benches, criterion_benchmark);
