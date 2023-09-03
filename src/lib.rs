@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 #[cfg(not(feature = "off"))]
-const CAPACITY: usize = 16384;
+const CAPACITY: usize = 86510731;
 
 #[cfg(feature = "off")]
 const CAPACITY: usize = 0;

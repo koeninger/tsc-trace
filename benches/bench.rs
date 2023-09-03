@@ -1,5 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::*;
 use tsc_trace::*;
+use std::time::Duration;
 
 #[inline]
 fn direct() {
@@ -13,20 +14,15 @@ fn direct() {
 }
 
 #[inline]
-fn named() {
-    let _x = Span::new(1);
-}
-
-#[inline]
 fn macroed() {
     trace!(2);
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("direct", |b| b.iter(|| black_box(direct())));
-    c.bench_function("macroed", |b| b.iter(|| black_box(macroed())));
-    println!("traces: {}", tsc_trace::len());
-    c.bench_function("named", |b| b.iter(|| black_box(named())));
+    let mut group = c.benchmark_group("tsc");
+    let mut group = group.measurement_time(Duration::from_millis(1000)).warm_up_time(Duration::from_millis(1000));
+    group.bench_function("direct", |b| b.iter(|| black_box(direct())));
+    group.bench_function("macroed", |b| b.iter(|| black_box(macroed())));
     println!("traces: {}", tsc_trace::len());
 }
 
