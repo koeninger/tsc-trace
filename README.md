@@ -15,6 +15,6 @@ So total memory overhead is:
 Alternatively you can use the feature `"off"` to set capacity to 0 and statically disable collection of traces.
 This is useful if you want to leave timing markers in place for future use, but not pay any runtime overhead.
 
-The feature "lfence" will add an lfence instruction before and after each call to rdtsc.
+The feature `"lfence"` will add an lfence instruction before and after each call to rdtsc.
 
 Run `cargo bench` to show the runtime overhead difference between using this library, vs directly calling rdtsc twice and subtracting.
