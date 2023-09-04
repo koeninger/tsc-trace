@@ -4,8 +4,8 @@ It will probably give questionable results unless you're pinning threads to core
 
 See [main.rs](https://github.com/koeninger/tsc-trace/blob/main/src/main.rs) for example usage.
 
-You must use one of the features `"capacity_1_million"` ... `"capacity_64_million"`.
-This sets the capacity (in number of traces, not bytes) used by the thread-local array to store traces.
+The features `"capacity_1_million"` ... `"capacity_64_million"` set the capacity (in number of traces, not bytes) used by the thread-local array to store traces.
+Default is 1 million.
 That array is treated as a circular buffer, so it will wrap around and overwrite traces rather than OOMing or stopping collection.
 Each trace uses 24 bytes (u64 tag, u64 starting rdtsc count, u64 ending rdtsc count).
 So total memory overhead is:

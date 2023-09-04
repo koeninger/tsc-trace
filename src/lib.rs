@@ -27,11 +27,9 @@ pub const TSC_TRACE_CAPACITY: usize = 64_000_000;
 #[cfg(feature = "off")]
 pub const TSC_TRACE_CAPACITY: usize = 0;
 
+/// capacity in number of traces per thread
 #[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
-compile_error!("tsc-trace requires enabling exactly one of the features 'capacity_1_million' ... 'capacity_64_million', or 'off'");
-
-#[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
-pub const TSC_TRACE_CAPACITY: usize = 0;
+pub const TSC_TRACE_CAPACITY: usize = 1_000_000;
 
 const CAPACITY: usize = TSC_TRACE_CAPACITY * 3;
 
