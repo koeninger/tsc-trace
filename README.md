@@ -17,4 +17,4 @@ This is useful if you want to leave timing markers in place for future use, but 
 
 The feature `"lfence"` will add an lfence instruction before and after each call to rdtsc.
 
-Run `cargo bench` to show the runtime overhead difference between using this library, vs directly calling rdtsc twice and subtracting.
+Run e.g. `cargo bench --features "tsc-trace/capacity_1_million"` to show the runtime overhead difference between using this library, vs directly calling rdtsc twice and subtracting.

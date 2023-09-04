@@ -2,27 +2,27 @@ use std::cell::{ RefCell, Cell };
 use std::io::{ Result, Write };
 
 #[cfg(all(not(feature = "off"), feature = "capacity_1_million"))]
-pub const CAPACITY: usize = 1_000_000 * 3;
+const CAPACITY: usize = 1_000_000 * 3;
 
 #[cfg(all(not(feature = "off"), feature = "capacity_8_million"))]
-pub const CAPACITY: usize = 8_000_000 * 3;
+const CAPACITY: usize = 8_000_000 * 3;
 
 #[cfg(all(not(feature = "off"), feature = "capacity_16_million"))]
-pub const CAPACITY: usize = 16_000_000 * 3;
+const CAPACITY: usize = 16_000_000 * 3;
 
 #[cfg(all(not(feature = "off"), feature = "capacity_32_million"))]
-pub const CAPACITY: usize = 32_000_000 * 3;
+const CAPACITY: usize = 32_000_000 * 3;
 
 #[cfg(all(not(feature = "off"), feature = "capacity_64_million"))]
-pub const CAPACITY: usize = 64_000_000 * 3;
+const CAPACITY: usize = 64_000_000 * 3;
 
 #[cfg(feature = "off")]
-pub const CAPACITY: usize = 0;
+const CAPACITY: usize = 0;
 
 #[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
 compile_error!("tsc-trace requires enabling exactly one of the features 'capacity_1_million' ... 'capacity_64_million', or 'off'");
 #[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
-pub const CAPACITY: usize = 0;
+const CAPACITY: usize = 0;
 
 thread_local! {
     static TSC_TRACE_SPANS: RefCell<[u64; CAPACITY]> = const { RefCell::new([0; CAPACITY]) };
@@ -35,7 +35,7 @@ thread_local! {
 ///
 /// Stops writing once it encounters a stop_rdtsc of zero,
 /// assuming that's an unused portion of the array
-pub fn write_csv(writer: &mut impl Write) -> Result<()> {
+pub fn write_traces_csv(writer: &mut impl Write) -> Result<()> {
     let mut res = Ok(());
     TSC_TRACE_SPANS.with(|spans| {
         let spans = spans.borrow();
@@ -69,7 +69,7 @@ pub fn write_csv(writer: &mut impl Write) -> Result<()> {
 ///
 /// This is suitable for import to Clickhouse via format RowBinary
 /// <https://clickhouse.com/docs/en/interfaces/formats#rowbinary>
-pub fn write_binary(writer: &mut impl Write) -> Result<()> {
+pub fn write_traces_binary(writer: &mut impl Write) -> Result<()> {
     let mut res = Ok(());
     TSC_TRACE_SPANS.with(|spans| {
         let spans = spans.borrow();
@@ -115,52 +115,62 @@ pub fn rdtsc() -> u64 {
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
 pub fn rdtsc() -> u64 {
-    unimplemented!("x86 needed for rdtsc")
+    compile_error!("x86 or x86_64 needed for rdtsc")
 }
 
-/// Use the trace! macro, do not use this directly.
-pub struct Span {
+/// This struct must be public so that the trace! macro can make an instance of it in your code.
+/// Don't rely on any details of it, use the trace! macro instead.
+pub struct TraceSpan {
     tag: u64,
     start: u64,
 }
 
-impl Span {
+impl TraceSpan {
     /// Do not call this, use the trace! macro instead
     pub fn new(tag: u64) -> Self {
-        Span {
+        TraceSpan {
             tag,
             start: rdtsc(),
         }
     }
 }
 
-impl Drop for Span {
+impl Drop for TraceSpan {
     fn drop(&mut self) {
         let stop = rdtsc();
-        TSC_TRACE_INDEX.with(|index| {
+        _insert_trace(self.tag, self.start, stop);
+    }
+}
+
+/// Must be public for use by the insert_trace! macro
+/// Use that instead, don't use this directly
+#[inline(always)]
+pub fn _insert_trace(tag: u64, start: u64, stop: u64) {
+       TSC_TRACE_INDEX.with(|index| {
             let mut i = index.get();
             if i >= CAPACITY {
                 i = 0;
             }
             TSC_TRACE_SPANS.with(|spans| {
                 let mut spans = spans.borrow_mut();
-                spans[i] = self.tag;
+                spans[i] = tag;
                 i += 1;
-                spans[i] = self.start;
+                spans[i] = start;
                 i += 1;
                 spans[i] = stop;
                 i += 1;
             });
             index.set(i);
         })
-    }
 }
 
 #[macro_export]
 #[cfg(not(feature = "off"))]
+/// Start a trace span that ends at the end of this scope.
+/// Creates a variable named _tsc_trace_span, so don't use that name yourself.
 macro_rules! trace {
     ($e:expr) => {
-        let _tsc_trace_span = Span::new(($e) as u64);
+        let _tsc_trace_span = TraceSpan::new(($e) as u64);
     };
 }
 
@@ -168,4 +178,21 @@ macro_rules! trace {
 #[cfg(feature = "off")]
 macro_rules! trace {
     ($e:expr) => {};
+}
+
+#[macro_export]
+#[cfg(not(feature = "off"))]
+/// `insert_trace!(tag, start, stop)`
+/// Takes any 3 arbitrary expressions that `as u64` works on,
+/// immediately inserts them into the thread local array as if they were a single trace
+macro_rules! insert_trace {
+    ($a:expr, $b:expr, $c:expr) => {
+        _insert_trace(($a) as u64, ($b) as u64, ($c) as u64);
+    };
+}
+
+#[macro_export]
+#[cfg(feature = "off")]
+macro_rules! insert_trace {
+    ($a:expr, $b:expr, $c:expr) => {};
 }
