@@ -2,7 +2,7 @@ Trace the number of cycles used by spans of code, via the x86 rdtsc instruction.
 This is only usable on x86 / x86_64 architectures.
 It will probably give questionable results unless you're pinning threads to cores.
 
-See [main.rs](src/main.rs) for example usage.
+See [main.rs](https://github.com/koeninger/tsc-trace/blob/main/src/main.rs) for example usage.
 
 You must use one of the features `"capacity_1_million"` ... `"capacity_64_million"`.
 This sets the capacity (in number of traces, not bytes) used by the thread-local array to store traces.

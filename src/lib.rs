@@ -1,26 +1,35 @@
+#![doc = include_str!("../README.md")]
+
 use std::cell::{ RefCell, Cell };
 use std::io::{ Result, Write };
 
+/// capacity in number of traces per thread
 #[cfg(all(not(feature = "off"), feature = "capacity_1_million"))]
 pub const TSC_TRACE_CAPACITY: usize = 1_000_000;
 
+/// capacity in number of traces per thread
 #[cfg(all(not(feature = "off"), feature = "capacity_8_million"))]
 pub const TSC_TRACE_CAPACITY: usize = 8_000_000;
 
+/// capacity in number of traces per thread
 #[cfg(all(not(feature = "off"), feature = "capacity_16_million"))]
 pub const TSC_TRACE_CAPACITY: usize = 16_000_000;
 
+/// capacity in number of traces per thread
 #[cfg(all(not(feature = "off"), feature = "capacity_32_million"))]
 pub const TSC_TRACE_CAPACITY: usize = 32_000_000;
 
+/// capacity in number of traces per thread
 #[cfg(all(not(feature = "off"), feature = "capacity_64_million"))]
 pub const TSC_TRACE_CAPACITY: usize = 64_000_000;
 
+/// capacity in number of traces per thread
 #[cfg(feature = "off")]
 pub const TSC_TRACE_CAPACITY: usize = 0;
 
 #[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
 compile_error!("tsc-trace requires enabling exactly one of the features 'capacity_1_million' ... 'capacity_64_million', or 'off'");
+
 #[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
 pub const TSC_TRACE_CAPACITY: usize = 0;
 
@@ -31,7 +40,7 @@ thread_local! {
     static TSC_TRACE_INDEX: Cell<usize> = const { Cell::new(0) };
 }
 
-/// Writes the current thread's array of traces in the format
+/// Writes the current thread's array of traces in the format:
 ///
 /// tag,start_rdtsc,stop_rdtsc,stop_minus_start\n
 ///
@@ -58,7 +67,7 @@ pub fn write_traces_csv(writer: &mut impl Write) -> Result<()> {
 }
 
 /// Writes the current thread's array of traces in a binary format.
-/// This is, in order
+/// This is, in order:
 ///
 /// tag: u64
 /// start_rdtsc: u64
@@ -83,6 +92,7 @@ pub fn write_traces_binary(writer: &mut impl Write) -> Result<()> {
     res
 }
 
+/// Reads the processor's timestamp counter. If the `"lfence"` feature is enabled, includes lfence instructions before and after.
 #[inline(always)]
 #[cfg(target_arch = "x86")]
 pub fn rdtsc() -> u64 {
@@ -99,6 +109,7 @@ pub fn rdtsc() -> u64 {
     }
 }
 
+/// Reads the processor's timestamp counter. If the `"lfence"` feature is enabled, includes lfence instructions before and after.
 #[inline(always)]
 #[cfg(target_arch = "x86_64")]
 pub fn rdtsc() -> u64 {
@@ -128,7 +139,7 @@ pub struct TraceSpan {
 }
 
 impl TraceSpan {
-    /// Do not call this, use the trace! macro instead
+    /// Do not call this, use the trace! macro instead.
     pub fn new(tag: u64) -> Self {
         TraceSpan {
             tag,
@@ -144,8 +155,8 @@ impl Drop for TraceSpan {
     }
 }
 
-/// Must be public for use by the insert_trace! macro
-/// Use that instead, don't use this directly
+/// Must be public for use by the insert_trace! macro.
+/// Use that macro instead, don't use this directly.
 #[inline(always)]
 pub fn _insert_trace(tag: u64, start: u64, stop: u64) {
        TSC_TRACE_INDEX.with(|index| {
@@ -168,8 +179,8 @@ pub fn _insert_trace(tag: u64, start: u64, stop: u64) {
 
 #[macro_export]
 #[cfg(not(feature = "off"))]
-/// Start a trace span that ends at the end of this scope.
-/// Creates a variable named _tsc_trace_span, so don't use that name yourself.
+/// `trace!(tag)` Starts a trace span with the given u64 tag that ends at the end of this scope.
+/// Creates a local variable named _tsc_trace_span, so don't use that name yourself.
 macro_rules! trace {
     ($e:expr) => {
         let _tsc_trace_span = TraceSpan::new(($e) as u64);
@@ -186,7 +197,7 @@ macro_rules! trace {
 #[cfg(not(feature = "off"))]
 /// `insert_trace!(tag, start, stop)`
 /// Takes any 3 arbitrary expressions that `as u64` works on,
-/// immediately inserts them into the thread local array as if they were a single trace
+/// immediately inserts them into the thread local array as if they were a single trace.
 macro_rules! insert_trace {
     ($a:expr, $b:expr, $c:expr) => {
         _insert_trace(($a) as u64, ($b) as u64, ($c) as u64);
