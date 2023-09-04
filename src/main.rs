@@ -29,9 +29,14 @@ fn main() -> std::io::Result<()> {
     let mut lock = stdout.lock();
     write_traces_csv(&mut lock)?;
 
-    // write the array of traces to binary file
-    let mut bin = std::fs::File::create("/tmp/traces")?;
-    write_traces_binary(&mut bin)?;
+    // can do runtime checks against configured capacity
+    if TSC_TRACE_CAPACITY > 0 {
+      // write the array of traces to binary file
+      let mut bin = std::fs::File::create("/tmp/traces")?;
+      write_traces_binary(&mut bin)?;
+    } else {
+      println!("tracing is off, not writing binary file");
+    }
 
     Ok(())
 }

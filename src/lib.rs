@@ -2,27 +2,29 @@ use std::cell::{ RefCell, Cell };
 use std::io::{ Result, Write };
 
 #[cfg(all(not(feature = "off"), feature = "capacity_1_million"))]
-const CAPACITY: usize = 1_000_000 * 3;
+pub const TSC_TRACE_CAPACITY: usize = 1_000_000;
 
 #[cfg(all(not(feature = "off"), feature = "capacity_8_million"))]
-const CAPACITY: usize = 8_000_000 * 3;
+pub const TSC_TRACE_CAPACITY: usize = 8_000_000;
 
 #[cfg(all(not(feature = "off"), feature = "capacity_16_million"))]
-const CAPACITY: usize = 16_000_000 * 3;
+pub const TSC_TRACE_CAPACITY: usize = 16_000_000;
 
 #[cfg(all(not(feature = "off"), feature = "capacity_32_million"))]
-const CAPACITY: usize = 32_000_000 * 3;
+pub const TSC_TRACE_CAPACITY: usize = 32_000_000;
 
 #[cfg(all(not(feature = "off"), feature = "capacity_64_million"))]
-const CAPACITY: usize = 64_000_000 * 3;
+pub const TSC_TRACE_CAPACITY: usize = 64_000_000;
 
 #[cfg(feature = "off")]
-const CAPACITY: usize = 0;
+pub const TSC_TRACE_CAPACITY: usize = 0;
 
 #[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
 compile_error!("tsc-trace requires enabling exactly one of the features 'capacity_1_million' ... 'capacity_64_million', or 'off'");
 #[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
-const CAPACITY: usize = 0;
+pub const TSC_TRACE_CAPACITY: usize = 0;
+
+const CAPACITY: usize = TSC_TRACE_CAPACITY * 3;
 
 thread_local! {
     static TSC_TRACE_SPANS: RefCell<[u64; CAPACITY]> = const { RefCell::new([0; CAPACITY]) };
