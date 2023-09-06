@@ -1,3 +1,5 @@
+[crates.io]: https://crates.io/crates/tsc-trace
+
 Trace the number of cycles used by spans of code, via the x86 rdtsc instruction.
 This is only usable on x86 / x86_64 architectures.
 It will probably give questionable results unless you're pinning threads to cores.
