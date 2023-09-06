@@ -1,4 +1,6 @@
-![Crates.io](https://img.shields.io/crates/v/tsc-trace?link=https%3A%2F%2Fcrates.io%2Fcrates%2Ftsc-trace)
+[![Crates.io][crates-badge]][crates-url]
+[crates-badge]: https://img.shields.io/crates/v/tsc-trace.svg
+[crates-url]: https://crates.io/crates/tsc-trace
 
 Trace the number of cycles used by spans of code, via the x86 rdtsc instruction.
 This is only usable on x86 / x86_64 architectures.
