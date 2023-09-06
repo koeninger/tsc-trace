@@ -126,18 +126,18 @@ pub fn rdtsc() -> u64 {
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
 pub fn rdtsc() -> u64 {
-    compile_error!("x86 or x86_64 needed for rdtsc")
+    unimplemented!("x86 or x86_64 needed for rdtsc")
 }
 
-/// This struct must be public so that the trace! macro can make an instance of it in your code.
-/// Don't rely on any details of it, use the trace! macro instead.
+/// This struct must be public so that the trace_span! macro can make an instance of it in your code.
+/// Don't rely on any details of it, use the macro instead.
 pub struct TraceSpan {
     tag: u64,
     start: u64,
 }
 
 impl TraceSpan {
-    /// Do not call this, use the trace! macro instead.
+    /// Do not call this, use the trace_span! macro instead.
     pub fn new(tag: u64) -> Self {
         TraceSpan {
             tag,
@@ -177,9 +177,9 @@ pub fn _insert_trace(tag: u64, start: u64, stop: u64) {
 
 #[macro_export]
 #[cfg(not(feature = "off"))]
-/// `trace!(tag)` Starts a trace span with the given u64 tag that ends at the end of this scope.
+/// `trace_span!(tag)` Starts a trace span with the given u64 tag that ends at the end of this scope.
 /// Creates a local variable named _tsc_trace_span, so don't use that name yourself.
-macro_rules! trace {
+macro_rules! trace_span {
     ($e:expr) => {
         let _tsc_trace_span = TraceSpan::new(($e) as u64);
     };
@@ -187,7 +187,7 @@ macro_rules! trace {
 
 #[macro_export]
 #[cfg(feature = "off")]
-macro_rules! trace {
+macro_rules! trace_span {
     ($e:expr) => {};
 }
 

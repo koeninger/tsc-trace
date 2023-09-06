@@ -11,7 +11,7 @@ enum Traces {
 
 fn main() -> std::io::Result<()> {
     {
-        trace!(Traces::Main); // reads rdtsc to get cycle count, stores it in a stack variable
+        trace_span!(Traces::Main); // reads rdtsc to get cycle count, stores it in a stack variable
         for _ in 1..10 {
             some_function();
         }
@@ -42,6 +42,6 @@ fn main() -> std::io::Result<()> {
 }
 
 fn some_function() {
-    trace!(Traces::SomeFunction);
+    trace_span!(Traces::SomeFunction);
     println!("doing some work in some_function");
 }

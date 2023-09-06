@@ -15,7 +15,7 @@ fn direct() {
 
 #[inline]
 fn macroed() {
-    trace!(2);
+    trace_span!(2);
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
