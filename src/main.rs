@@ -22,7 +22,10 @@ fn main() -> std::io::Result<()> {
         Traces::SomeEvent,
         rdtsc(),
         std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos());
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    );
 
     // write the array of traces to stdout in comma-separated format
     let stdout = std::io::stdout();
@@ -31,11 +34,11 @@ fn main() -> std::io::Result<()> {
 
     // can do runtime checks against configured capacity
     if TSC_TRACE_CAPACITY > 0 {
-      // write the array of traces to binary file
-      let mut bin = std::fs::File::create("/tmp/traces")?;
-      write_traces_binary(&mut bin)?;
+        // write the array of traces to binary file
+        let mut bin = std::fs::File::create("/tmp/traces")?;
+        write_traces_binary(&mut bin)?;
     } else {
-      println!("tracing is off, not writing binary file");
+        println!("tracing is off, not writing binary file");
     }
 
     Ok(())

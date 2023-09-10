@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 
-use std::cell::{ RefCell, Cell };
-use std::io::{ Result, Write };
+use std::cell::{Cell, RefCell};
+use std::io::{Result, Write};
 
 /// capacity in number of traces per thread
 #[cfg(all(not(feature = "off"), feature = "capacity_1_million"))]
@@ -28,7 +28,14 @@ pub const TSC_TRACE_CAPACITY: usize = 64_000_000;
 pub const TSC_TRACE_CAPACITY: usize = 0;
 
 /// capacity in number of traces per thread
-#[cfg(all(not(feature = "off"), not(feature = "capacity_1_million"), not(feature = "capacity_8_million"), not(feature = "capacity_16_million"), not(feature = "capacity_32_million"), not(feature = "capacity_64_million")))]
+#[cfg(all(
+    not(feature = "off"),
+    not(feature = "capacity_1_million"),
+    not(feature = "capacity_8_million"),
+    not(feature = "capacity_16_million"),
+    not(feature = "capacity_32_million"),
+    not(feature = "capacity_64_million")
+))]
 pub const TSC_TRACE_CAPACITY: usize = 1_000_000;
 
 const CAPACITY: usize = TSC_TRACE_CAPACITY * 3;
@@ -50,8 +57,8 @@ pub fn write_traces_csv(writer: &mut impl Write) -> Result<()> {
         let spans = spans.borrow();
         for i in (0..CAPACITY).step_by(3) {
             let tag = spans[i];
-            let start = spans[i+1];
-            let stop = spans[i+2];
+            let start = spans[i + 1];
+            let stop = spans[i + 2];
             if stop == 0 {
                 break;
             }
@@ -94,9 +101,9 @@ pub fn write_traces_binary(writer: &mut impl Write) -> Result<()> {
 #[inline(always)]
 #[cfg(target_arch = "x86")]
 pub fn rdtsc() -> u64 {
-    use core::arch::x86::_rdtsc;
     #[cfg(feature = "lfence")]
     use core::arch::x86::_mm_lfence;
+    use core::arch::x86::_rdtsc;
     unsafe {
         #[cfg(feature = "lfence")]
         _mm_lfence();
@@ -111,9 +118,9 @@ pub fn rdtsc() -> u64 {
 #[inline(always)]
 #[cfg(target_arch = "x86_64")]
 pub fn rdtsc() -> u64 {
-    use core::arch::x86_64::_rdtsc;
     #[cfg(feature = "lfence")]
     use core::arch::x86_64::_mm_lfence;
+    use core::arch::x86_64::_rdtsc;
     unsafe {
         #[cfg(feature = "lfence")]
         _mm_lfence();
@@ -157,22 +164,22 @@ impl Drop for TraceSpan {
 /// Use that macro instead, don't use this directly.
 #[inline(always)]
 pub fn _insert_trace(tag: u64, start: u64, stop: u64) {
-       TSC_TRACE_INDEX.with(|index| {
-            let mut i = index.get();
-            if i >= CAPACITY {
-                i = 0;
-            }
-            TSC_TRACE_SPANS.with(|spans| {
-                let mut spans = spans.borrow_mut();
-                spans[i] = tag;
-                i += 1;
-                spans[i] = start;
-                i += 1;
-                spans[i] = stop;
-                i += 1;
-            });
-            index.set(i);
-        })
+    TSC_TRACE_INDEX.with(|index| {
+        let mut i = index.get();
+        if i >= CAPACITY {
+            i = 0;
+        }
+        TSC_TRACE_SPANS.with(|spans| {
+            let mut spans = spans.borrow_mut();
+            spans[i] = tag;
+            i += 1;
+            spans[i] = start;
+            i += 1;
+            spans[i] = stop;
+            i += 1;
+        });
+        index.set(i);
+    })
 }
 
 #[macro_export]
