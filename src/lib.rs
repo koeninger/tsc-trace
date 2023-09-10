@@ -40,8 +40,15 @@ pub const TSC_TRACE_CAPACITY: usize = 1_000_000;
 
 const CAPACITY: usize = TSC_TRACE_CAPACITY * 3;
 
+#[cfg(feature = "const_array")]
 thread_local! {
     static TSC_TRACE_SPANS: RefCell<[u64; CAPACITY]> = const { RefCell::new([0; CAPACITY]) };
+    static TSC_TRACE_INDEX: Cell<usize> = const { Cell::new(0) };
+}
+
+#[cfg(not(feature = "const_array"))]
+thread_local! {
+    static TSC_TRACE_SPANS: RefCell<Vec<u64>> = RefCell::new(Vec::with_capacity(CAPACITY));
     static TSC_TRACE_INDEX: Cell<usize> = const { Cell::new(0) };
 }
 
@@ -55,16 +62,15 @@ pub fn write_traces_csv(writer: &mut impl Write) -> Result<()> {
     let mut res = Ok(());
     TSC_TRACE_SPANS.with(|spans| {
         let spans = spans.borrow();
-        for i in (0..CAPACITY).step_by(3) {
-            let tag = spans[i];
-            let start = spans[i + 1];
-            let stop = spans[i + 2];
-            if stop == 0 {
-                break;
-            }
-            if let e @ Err(_) = writeln!(writer, "{tag},{start},{stop},{}", stop - start) {
-                res = e;
-                break;
+        for chunk in spans.chunks_exact(3) {
+            if let &[tag, start, stop] = chunk {
+                if stop == 0 {
+                    break;
+                }
+                if let e @ Err(_) = writeln!(writer, "{tag},{start},{stop},{}", stop - start) {
+                    res = e;
+                    break;
+                }
             }
         }
     });
@@ -169,15 +175,32 @@ pub fn _insert_trace(tag: u64, start: u64, stop: u64) {
         if i >= CAPACITY {
             i = 0;
         }
+
+        #[cfg(feature = "const_array")]
         TSC_TRACE_SPANS.with(|spans| {
             let mut spans = spans.borrow_mut();
             spans[i] = tag;
-            i += 1;
-            spans[i] = start;
-            i += 1;
-            spans[i] = stop;
-            i += 1;
+            spans[i + 1] = start;
+            spans[i + 2] = stop;
+            i += 3;
         });
+
+        #[cfg(not(feature = "const_array"))]
+        TSC_TRACE_SPANS.with(|spans| {
+            let mut spans = spans.borrow_mut();
+            if spans.len() >= CAPACITY {
+                spans[i] = tag;
+                spans[i + 1] = start;
+                spans[i + 2] = stop;
+                i += 3;
+            } else {
+                spans.push(tag);
+                spans.push(start);
+                spans.push(stop);
+                i += 3;
+            }
+        });
+
         index.set(i);
     })
 }

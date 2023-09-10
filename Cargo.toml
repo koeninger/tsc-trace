@@ -1,6 +1,6 @@
 [package]
 name = "tsc-trace"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 license = "MIT"
 description = "low overhead tracing of rust code using time stamp counter (x86 rdtsc)"
@@ -21,6 +21,7 @@ capacity_32_million = []
 capacity_64_million = []
 off = []
 lfence = []
+const_array = []
 
 [dependencies]
 bytemuck = "1.13.1"
