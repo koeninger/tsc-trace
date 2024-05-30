@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/tsc-trace.svg)](https://crates.io/crates/tsc-trace)
 
-Trace the number of cycles used by spans of code, via the x86 rdtsc instruction or ARM cntvct_el0 register
+Trace the number of cycles used by spans of code, via the x86 rdtsc instruction or reading ARM cntvct_el0 register.
 It will probably give questionable results unless you're pinning threads to cores.
 
 See [main.rs](https://github.com/koeninger/tsc-trace/blob/main/src/main.rs) for example usage.
@@ -20,6 +20,12 @@ This is useful if you want to leave timing markers in place for future use, but 
 
 The feature `"const_array"` will use a const array rather than a vec for the thread local storage of traces.
 
-The feature `"lfence"` will add an lfence instruction before and after each call to rdtsc.
+The feature `"lfence"` will add an lfence instruction before and after each call to rdtsc (x86 only).
 
 Run e.g. `cargo bench --features "tsc-trace/capacity_1_million"` to show the runtime overhead difference between using this library, vs directly calling rdtsc twice and subtracting.
+
+## Viewer
+
+A visual representation of cycles gathered by tsc-trace.
+
+Dependency on SDL2 (https://crates.io/crates/sdl2)
