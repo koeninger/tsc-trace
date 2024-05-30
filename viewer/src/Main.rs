@@ -1,4 +1,4 @@
-use sdl2::event::{Event, WindowEvent};
+use sdl2::event::{Event};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
@@ -27,6 +27,8 @@ pub struct App {
     span_height: i32,
     /// vertical pixels between spans
     span_spacing: i32,
+    min_start: u64,
+    max_stop: u64,
 }
 
 impl App {
@@ -35,11 +37,8 @@ impl App {
             Span { tag: 0, start: 100, stop: 10_000},
             Span { tag: 1, start: 20_000, stop: 23_000},
             Span { tag: 2, start: 10_000, stop: 13_000},
+            Span { tag: 0, start: 10_500, stop: 10_900},
             Span { tag: 3, start: 12_000, stop: 13_000},
-            Span { tag: 4, start: 20_000, stop: 20_010},
-            Span { tag: 5, start: 21_000, stop: 21_010},
-            Span { tag: 6, start: 22_000, stop: 22_010},
-            Span { tag: 7, start: 5_000, stop: 5_010},
         ];
         assert!(!spans.is_empty(), "expected a non-empty array of trace spans");
         spans.sort_unstable_by_key(|s| s.start);
@@ -48,9 +47,9 @@ impl App {
         let max_stop = spans[spans.len() - 1].stop;
         let window_width = 800u32;
         let window_height = 600u32;
-        let scale = (max_stop - min_start) / window_width as u64;
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
+        let scale = (max_stop - min_start) / window_width as u64;
         let window = video_subsystem
             .window("tsc-trace viewer", window_width, window_height)
             .position_centered()
@@ -63,7 +62,7 @@ impl App {
         Ok((spans, App {
             window_width,
             window_height,
-            background_color: Color::RGB(0,0,0),
+            background_color: Color::RGB(192,192,192),
             colors: vec![
                 (255, 0, 0),
                 (0, 255, 0),
@@ -83,8 +82,10 @@ impl App {
             sdl_context,
             canvas,
             scale,
-            span_height: 4,
-            span_spacing: 2,
+            span_height: 10,
+            span_spacing: 0,
+            min_start,
+            max_stop,
         }))
     }
 
@@ -95,7 +96,7 @@ impl App {
         } else {
             self.muted_colors[span.tag as usize % self.muted_colors.len()]
         });
-        self.canvas.fill_rect(Rect::new(self.x_pos(span), self.y_pos(span), x_sz, self.span_height as u32))
+        self.canvas.fill_rect(Rect::new(self.x_pos(span), self.y_pos(span), x_sz, (self.span_height)  as u32))
             .unwrap_or_else(|e| panic!("draw failure {e} for span {span:?}"));
     }
 
@@ -122,14 +123,14 @@ impl App {
         'running: loop {
             for event in event_pump.poll_iter() {
                 match event {
-                    Event::Quit { .. }
-                    | Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
-                        ..
-                    } => break 'running,
-                    Event::Window{win_event: WindowEvent::Resized(w, h), .. } =>  {
-                        self.window_height = h as u32;
-                        self.window_width = w as u32;
+                    Event::Quit { .. } => break 'running,
+                    Event::KeyDown {keycode: Some(keycode), ..} => {
+                        match keycode {
+                            Keycode::Q => self.scale+=1, //plus
+                            Keycode::W => self.scale-=1, //minus
+                            Keycode::E => self.scale = (self.max_stop - self.min_start) / (self.window_width as u64),//reset
+                            _ => todo!()
+                        }
                     }
                     _ => {}
                 }
@@ -141,7 +142,7 @@ impl App {
                 self.draw_span(span);
             }
             self.canvas.present();
-            thread::sleep(Duration::new(0, 1_000_000_000u32));
+            thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
         }
 
         Ok(())
