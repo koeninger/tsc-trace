@@ -2,6 +2,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::io::{Result, Write};
+use std::arch::asm;
 
 /// capacity in number of traces per thread
 #[cfg(all(not(feature = "off"), feature = "capacity_1_million"))]
@@ -137,9 +138,23 @@ pub fn rdtsc() -> u64 {
     }
 }
 
-#[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+/// Workaround for ARM chips. Does not actually use rdtsc, as it is only supported on x86.
+#[inline(always)]
+#[cfg(target_arch = "aarch64")]
 pub fn rdtsc() -> u64 {
-    unimplemented!("x86 or x86_64 needed for rdtsc")
+    let r: u64;
+    unsafe{
+        asm!(
+            "mrs x0, cntvct_el0",
+            out("x0") r
+        );
+    }
+    r
+}
+
+#[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
+pub fn rdtsc() -> u64 {
+    unimplemented!("x86 or x86_64 needed for rdtsc, aarch64 needed for workaround")
 }
 
 /// This struct must be public so that the trace_span! macro can make an instance of it in your code.
