@@ -5,6 +5,8 @@ use sdl2::rect::Rect;
 use sdl2::render::WindowCanvas;
 use std::time::Duration;
 use std::thread;
+use std::env;
+//use std::num::Saturating;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Span {
@@ -29,7 +31,10 @@ pub struct App {
     span_spacing: i32,
     min_start: u64,
     max_stop: u64,
+    scroll: i32,
 }
+
+//TODO reduce both start and stop positions for drawings by a single unsigned value
 
 impl App {
     pub fn new() -> Result<(Vec<Span>, App), String> {
@@ -86,6 +91,7 @@ impl App {
             span_spacing: 0,
             min_start,
             max_stop,
+            scroll: 0,
         }))
     }
 
@@ -96,18 +102,18 @@ impl App {
         } else {
             self.muted_colors[span.tag as usize % self.muted_colors.len()]
         });
-        self.canvas.fill_rect(Rect::new(self.x_pos(span), self.y_pos(span), x_sz, (self.span_height)  as u32))
+        self.canvas.fill_rect(Rect::new(self.x_pos(span).saturating_sub(self.scroll), self.y_pos(span), x_sz, (self.span_height)  as u32))
             .unwrap_or_else(|e| panic!("draw failure {e} for span {span:?}"));
     }
 
     fn x_size(&self, span: &Span) -> u32 {
-        ((span.stop - span.start) / self.scale).try_into()
+        ((span.stop - span.start) / (self.scale + 1)).try_into()
             .unwrap_or_else(|e| panic!("bad x_size for scale {} span {:?} err {e}", self.scale, span))
     }
 
     fn x_pos(&self, span: &Span) -> i32 {
         // TODO scrolling viewport
-        (span.start / self.scale).try_into()
+        (span.start / (self.scale + 1)).try_into()
             .unwrap_or_else(|e| panic!("bad x_pos for scale {} span {:?} err {e}", self.scale, span))
     }
 
@@ -119,23 +125,40 @@ impl App {
 
     pub fn run(&mut self, spans: Vec<Span>) -> Result<(), String> {
         let mut event_pump = self.sdl_context.event_pump()?;
+        let mut prev_keycount: i32 = 0;
+        let mut keycount: i32 = 0;
+        let mut keyspeed: i32 = 2;
 
         'running: loop {
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. } => break 'running,
                     Event::KeyDown {keycode: Some(keycode), ..} => {
+                        keycount +=1;
+                        if keycount > 60{
+                            keyspeed = 8;
+                        } else {
+                            keyspeed = 2;
+                        }
+                        println!("{keycount}");
                         match keycode {
-                            Keycode::Q => self.scale+=1, //plus
-                            Keycode::W => self.scale-=1, //minus
+                            Keycode::Q => self.scale = self.scale.saturating_add((keyspeed/2).try_into().unwrap()), //plus
+                            Keycode::W => self.scale = self.scale.saturating_sub((keyspeed/2).try_into().unwrap()), //minus
                             Keycode::E => self.scale = (self.max_stop - self.min_start) / (self.window_width as u64),//reset
+                            Keycode::A => self.scroll = self.scroll.saturating_add(keyspeed),
+                            Keycode::S => self.scroll = self.scroll.saturating_sub(keyspeed),
+                            Keycode::D => self.scroll = 0,
                             _ => todo!()
                         }
                     }
                     _ => {}
                 }
             }
-            
+            if prev_keycount == keycount{
+               keycount = 0;
+               prev_keycount = 0; 
+            }
+            prev_keycount = keycount;
             self.canvas.set_draw_color(self.background_color);
             self.canvas.clear();
             for span in &spans {
@@ -150,6 +173,7 @@ impl App {
 }
 
 pub fn main() -> Result<(), String> {
+    env::set_var("RUST_BACKTRACE", "1");
     let (spans, mut app) = App::new()?;
     println!("{}", app.scale);
     app.run(spans)
