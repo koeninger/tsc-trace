@@ -6,4 +6,7 @@ license = "MIT"
 description = "viewer for binary output of tsc-trace"
 
 [dependencies]
-sdl2 = "0.36.0"
+
+[dependencies.sdl2]
+version = "0.36.0"
+features = ["ttf"]
