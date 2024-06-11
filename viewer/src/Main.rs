@@ -10,9 +10,13 @@ use std::env;
 use std::path::Path;
 use std::thread;
 use std::time::Duration;
-//use std::num::Saturating;
+use std::io::prelude::*;
+use bytemuck::Pod;
+use bytemuck::Zeroable;
+use std::fs::File;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[repr(C)]
 pub struct Span {
     tag: u64,
     start: u64,
@@ -30,7 +34,6 @@ pub struct Area {
 
 pub struct App {
     window_width: u32,
-    window_height: u32,
     background_color: Color,
     draw_zones: Vec<Area>,
     colors: Vec<Color>,
@@ -50,65 +53,11 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> Result<(Vec<Span>, App), String> {
-        let mut spans = vec![
-            Span {
-                tag: 0,
-                start: 100,
-                stop: 10_000,
-            },
-            Span {
-                tag: 1,
-                start: 20_000,
-                stop: 23_000,
-            },
-            Span {
-                tag: 2,
-                start: 10_000,
-                stop: 13_000,
-            },
-            Span {
-                tag: 0,
-                start: 10_500,
-                stop: 10_900,
-            },
-            Span {
-                tag: 3,
-                start: 12_000,
-                stop: 13_000,
-            },
-            Span {
-                tag: 8,
-                start: 1_000,
-                stop: 10_000,
-            },
-            Span {
-                tag: 13,
-                start: 100,
-                stop: 110,
-            },
-            Span {
-                tag: 13,
-                start: 200,
-                stop: 210,
-            },
-            Span {
-                tag: 13,
-                start: 500,
-                stop: 507,
-            },
-            Span {
-                tag: 13,
-                start: 15_000,
-                stop: 30_000,
-            },
-            Span {
-                tag: 100,
-                start: 1_000,
-                stop: 20_000,
-            },
-        ];
-        let draw_zones: Vec<Area> = vec![];
+    pub fn new(filled_spans: &mut Vec<Span>) -> Result<App, String> {
+        let mut spans: Vec<Span> = vec![];
+        for span in filled_spans{
+            spans.push(*span);
+        };
         assert!(
             !spans.is_empty(),
             "expected a non-empty array of trace spans"
@@ -117,7 +66,8 @@ impl App {
         let min_start = spans[0].start;
         // TODO check and correct this on first iteration
         let max_stop = spans[spans.len() - 1].stop;
-        let window_width = 800u32;
+        let draw_zones: Vec<Area> = vec![];
+        let window_width = 1600u32;
         let window_height = 600u32;
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
@@ -132,13 +82,11 @@ impl App {
         let canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
         let texture_creator = canvas.texture_creator();
 
-        Ok((
-            spans,
+        Ok(
             App {
                 texture_creator,
                 draw_zones,
                 window_width,
-                window_height,
                 background_color: Color::RGB(192, 192, 192),
                 colors: vec![
                     (255, 0, 0),
@@ -170,8 +118,8 @@ impl App {
                 min_start,
                 max_stop,
                 scroll: 0,
-            },
-        ))
+            }
+        )
     }
 
     fn draw_span(&mut self, span: &Span) {
@@ -211,8 +159,7 @@ impl App {
     }
 
     fn x_pos(&self, span: &Span) -> i32 {
-        // TODO scrolling viewport
-        (span.start / (self.scale + 1))
+        ((span.start - self.min_start) / (self.scale + 1))
             .try_into()
             .unwrap_or_else(|e| {
                 panic!("bad x_pos for scale {} span {:?} err {e}", self.scale, span)
@@ -244,10 +191,10 @@ impl App {
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
-        canvas.set_draw_color(Color::RGB(255,255,255));
-        canvas.fill_rect(Rect::new(x, y, (tag_text.len()*20) as u32, 50 as u32))?;
+        canvas.set_draw_color(Color::RGB(255, 255, 255));
+        canvas.fill_rect(Rect::new(x, y, (tag_text.len() * 20) as u32, 50 as u32))?;
 
-        let target = Rect::new(x, y, (tag_text.len()*20) as u32, 50 as u32);
+        let target = Rect::new(x, y, (tag_text.len() * 20) as u32, 50 as u32);
         canvas.copy(&texture, None, Some(target))?;
 
         Ok(())
@@ -257,7 +204,6 @@ impl App {
         let mut event_pump = self.sdl_context.event_pump()?;
         let mut prev_keycount: i32 = 0;
         let mut keycount: i32 = 0;
-        let mut keyspeed;
         let mut draw_x = 0;
         let mut draw_y = 0;
         let mut draw_tag = 0;
@@ -272,29 +218,23 @@ impl App {
                         ..
                     } => {
                         keycount += 1;
-                        match keycount {
-                            1..=45 => keyspeed = 2,
-                            46..=90 => keyspeed = 6,
-                            91..=i32::MAX => keyspeed = 10,
-                            i32::MIN..=0_i32 => todo!(),
-                        }
                         match keycode {
                             Keycode::Q => {
                                 self.scale = self
                                     .scale
-                                    .saturating_add((keyspeed / 2).try_into().unwrap())
+                                    .saturating_add((keycount * keycount).try_into().unwrap())
                             } //plus
                             Keycode::W => {
                                 self.scale = self
                                     .scale
-                                    .saturating_sub((keyspeed / 2).try_into().unwrap())
+                                    .saturating_sub((keycount * keycount).try_into().unwrap())
                             } //minus
                             Keycode::E => {
                                 self.scale =
                                     (self.max_stop - self.min_start) / (self.window_width as u64)
                             } //reset
-                            Keycode::A => self.scroll = self.scroll.saturating_add(keyspeed),
-                            Keycode::S => self.scroll = self.scroll.saturating_sub(keyspeed),
+                            Keycode::A => self.scroll = self.scroll.saturating_add(keycount),
+                            Keycode::S => self.scroll = self.scroll.saturating_sub(keycount),
                             Keycode::D => self.scroll = 0,
                             _ => {}
                         }
@@ -309,7 +249,9 @@ impl App {
                                 draw_x = x;
                                 draw_y = y;
                                 draw_tag = zone.tag_num;
-                                draw_len = (zone.x_stop - zone.x_start)*(<u64 as TryInto<i32>>::try_into(self.scale).unwrap()+1); // slightly inaccurate
+                                draw_len = (zone.x_stop - zone.x_start)
+                                    * (<u64 as TryInto<i32>>::try_into(self.scale).unwrap() + 1);
+                                // slightly inaccurate
                             }
                         }
                     }
@@ -331,15 +273,15 @@ impl App {
             for span in &spans {
                 self.draw_span(span);
             }
-            if (draw_x > 0) && (draw_y > 0){
+            if (draw_x > 0) && (draw_y > 0) {
                 Self::draw_text(
-                &mut self.canvas,
-                &self.texture_creator,
-                &font,
-                draw_x,
-                draw_y,
-                draw_tag.try_into().unwrap(),
-                draw_len.try_into().unwrap(),
+                    &mut self.canvas,
+                    &self.texture_creator,
+                    &font,
+                    draw_x,
+                    draw_y,
+                    draw_tag.try_into().unwrap(),
+                    draw_len.try_into().unwrap(),
                 )?;
             }
             self.canvas.present();
@@ -350,12 +292,34 @@ impl App {
     }
 }
 
+pub fn load_args() -> Vec<Span> {
+    let mut spans = vec![];
+    let args: Vec<_> = env::args().collect();
+    match args.len() {
+        1 => {panic!("Command line arguments were not provided. Format: (file path) (number of spans to read) (tag range start) (tag range end).")},
+        5 =>{
+            let mut file = File::open(&args[1]).expect("failed to open file");
+            let mut buffer = [0; 24];
+            for _i in 0..args[2].parse::<u64>().unwrap(){
+                file.read_exact(&mut buffer).expect("failed to fill buffer");
+
+                let s: Span = bytemuck::pod_read_unaligned(&buffer);
+
+                if s.tag >= args[3].parse::<u64>().unwrap() && s.tag <= args [4].parse::<u64>().unwrap(){
+                    spans.push(s);
+                }
+            }
+        },
+        _ => panic!("Command line arguments could not be parsed. Format: (file path) (number of spans to read) (tag range start) (tag range end)."),
+    }
+    spans
+}
+
 pub fn main() -> Result<(), String> {
-    env::set_var("RUST_BACKTRACE", "1");
-    let (spans, mut app) = App::new()?;
+    let mut filled_spans = load_args();
+    let mut app = App::new(&mut filled_spans)?;
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
     let font_path: &Path = Path::new(&"fonts/Opensans-Regular.ttf");
     let font = ttf_context.load_font(font_path, 128)?;
-    println!("{}", app.scale);
-    app.run(spans, font)
+    app.run(filled_spans, font)
 }
