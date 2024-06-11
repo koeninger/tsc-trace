@@ -296,21 +296,23 @@ pub fn load_args() -> Vec<Span> {
     let mut spans = vec![];
     let args: Vec<_> = env::args().collect();
     match args.len() {
-        1 => {panic!("Command line arguments were not provided. Format: (file path) (number of spans to read) (tag range start) (tag range end).")},
-        5 =>{
+        1 => {panic!("Command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop).")},
+        6 =>{
             let mut file = File::open(&args[1]).expect("failed to open file");
             let mut buffer = [0; 24];
-            for _i in 0..args[2].parse::<u64>().unwrap(){
+
+            for i in 0..args[3].parse::<u64>().unwrap(){
                 file.read_exact(&mut buffer).expect("failed to fill buffer");
+                if i >= args[2].parse::<u64>().unwrap(){
+                    let s: Span = bytemuck::pod_read_unaligned(&buffer);
 
-                let s: Span = bytemuck::pod_read_unaligned(&buffer);
-
-                if s.tag >= args[3].parse::<u64>().unwrap() && s.tag <= args [4].parse::<u64>().unwrap(){
-                    spans.push(s);
+                    if s.tag >= args[4].parse::<u64>().unwrap() && s.tag <= args [5].parse::<u64>().unwrap(){
+                        spans.push(s);                    
                 }
             }
+            }
         },
-        _ => panic!("Command line arguments could not be parsed. Format: (file path) (number of spans to read) (tag range start) (tag range end)."),
+        _ => panic!("Command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop)."),
     }
     spans
 }
