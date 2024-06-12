@@ -28,8 +28,7 @@ pub struct Area {
     x_start: i32,
     y_stop: u64,
     x_stop: i32,
-    tag_num: u64,
-    //tag_name
+    tag_data: (u64,u64,u64),
 }
 
 pub struct App {
@@ -143,7 +142,7 @@ impl App {
             x_start: scrolled_x,
             y_stop: (self.y_pos(span) + self.span_height) as u64,
             x_stop: (scrolled_x + x_sz as i32),
-            tag_num: span.tag,
+            tag_data: (span.tag, span.start, span.stop),
         });
     }
 
@@ -248,10 +247,8 @@ impl App {
                             {
                                 draw_x = x;
                                 draw_y = y;
-                                draw_tag = zone.tag_num;
-                                draw_len = (zone.x_stop - zone.x_start)
-                                    * (<u64 as TryInto<i32>>::try_into(self.scale).unwrap() + 1);
-                                // slightly inaccurate
+                                draw_tag = zone.tag_data.0;
+                                draw_len = zone.tag_data.2 - zone.tag_data.1;
                             }
                         }
                     }
