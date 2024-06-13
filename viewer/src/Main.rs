@@ -28,7 +28,7 @@ pub struct Area {
     x_start: i32,
     y_stop: u64,
     x_stop: i32,
-    tag_data: (u64,u64,u64),
+    tag_data: Span,
 }
 
 pub struct App {
@@ -112,8 +112,8 @@ impl App {
                 sdl_context,
                 canvas,
                 scale,
-                span_height: 10,
-                span_spacing: 1,
+                span_height: 15,
+                span_spacing: 2,
                 min_start,
                 max_stop,
                 scroll: 0,
@@ -142,7 +142,7 @@ impl App {
             x_start: scrolled_x,
             y_stop: (self.y_pos(span) + self.span_height) as u64,
             x_stop: (scrolled_x + x_sz as i32),
-            tag_data: (span.tag, span.start, span.stop),
+            tag_data: Span {tag: span.tag, start: span.start, stop: span.stop},
         });
     }
 
@@ -247,8 +247,8 @@ impl App {
                             {
                                 draw_x = x;
                                 draw_y = y;
-                                draw_tag = zone.tag_data.0;
-                                draw_len = zone.tag_data.2 - zone.tag_data.1;
+                                draw_tag = zone.tag_data.tag;
+                                draw_len = zone.tag_data.stop - zone.tag_data.start;
                             }
                         }
                     }
