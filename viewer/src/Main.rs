@@ -63,8 +63,7 @@ impl App {
         );
         spans.sort_unstable_by_key(|s| s.start);
         let min_start = spans[0].start;
-        // TODO check and correct this on first iteration
-        let max_stop = spans[spans.len() - 1].stop;
+        let max_stop = spans.iter().max_by_key(|s| s.stop).unwrap().stop;
         let draw_zones: Vec<Area> = vec![];
         let window_width = 1600u32;
         let window_height = 600u32;
