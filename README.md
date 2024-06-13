@@ -30,12 +30,14 @@ Dependency on SDL2 (https://crates.io/crates/sdl2) and bytemuck (https://crates.
 
 A visual representation of cycles gathered by tsc-trace.
 
-Takes a file that has traces written to it through command line arguments, format:
+Takes a file that has traces written to it by write_traces_binary through command line arguments, format:
 (file path) (span range start) (span range stop) (tag range start) (tag range stop)
 
-the ranges are in number of spans, not bytes or clock cycles.
+the start and stop ranges are in number of spans, not bytes or clock cycles.
 
 use Q, W, E to zoom out, in, and reset.
 
 use A, S, D to move right, left, and reset.
 
+Clicking on span will display the tag and span length. This will not work in instances where spans are so small that multiple may be drawn per pixel.
+(these instances are represented by a lighter colorset being used)
