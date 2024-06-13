@@ -26,6 +26,16 @@ Run e.g. `cargo bench --features "tsc-trace/capacity_1_million"` to show the run
 
 ## Viewer
 
+Dependency on SDL2 (https://crates.io/crates/sdl2) and bytemuck (https://crates.io/crates/bytemuck).
+
 A visual representation of cycles gathered by tsc-trace.
 
-Dependency on SDL2 (https://crates.io/crates/sdl2)
+Takes a file that has traces written to it through command line arguments, format:
+(file path) (span range start) (span range stop) (tag range start) (tag range stop)
+
+the ranges are in number of spans, not bytes or clock cycles.
+
+use Q, W, E to zoom out, in, and reset.
+
+use A, S, D to move right, left, and reset.
+
