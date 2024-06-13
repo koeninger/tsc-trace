@@ -179,7 +179,7 @@ impl App {
         tag: i32,
         len: i32,
     ) -> Result<(), String> {
-        let tag_text: String = format!("{0},{1}", tag.to_string(), len.to_string());
+        let tag_text: String = format!("{0},{1}", tag, len);
         let surface = font
             .render(&tag_text)
             .blended(Color::RGBA(0, 0, 0, 128))
@@ -190,15 +190,15 @@ impl App {
             .map_err(|e| e.to_string())?;
 
         canvas.set_draw_color(Color::RGB(255, 255, 255));
-        canvas.fill_rect(Rect::new(x, y, (tag_text.len() * 20) as u32, 50 as u32))?;
+        canvas.fill_rect(Rect::new(x, y, (tag_text.len() * 20) as u32, 50_u32))?;
 
-        let target = Rect::new(x, y, (tag_text.len() * 20) as u32, 50 as u32);
+        let target = Rect::new(x, y, (tag_text.len() * 20) as u32, 50_u32);
         canvas.copy(&texture, None, Some(target))?;
 
         Ok(())
     }
 
-    pub fn run<'a>(&mut self, spans: Vec<Span>, font: Font<'a, 'static>) -> Result<(), String> {
+    pub fn run(&mut self, spans: Vec<Span>, font: Font<'_, 'static>) -> Result<(), String> {
         let mut event_pump = self.sdl_context.event_pump()?;
         let mut prev_keycount: i32 = 0;
         let mut keycount: i32 = 0;
@@ -239,8 +239,8 @@ impl App {
                     }
                     Event::MouseButtonDown { x, y, .. } => {
                         for zone in &self.draw_zones {
-                            if zone.x_start < x.try_into().unwrap()
-                                && zone.x_stop > x.try_into().unwrap()
+                            if zone.x_start < x
+                                && zone.x_stop > x
                                 && zone.y_start < y.try_into().unwrap()
                                 && zone.y_stop > y.try_into().unwrap()
                             {
@@ -297,12 +297,12 @@ pub fn load_args() -> Vec<Span> {
             let mut file = File::open(&args[1]).expect("failed to open file");
             let mut buffer = [0; 24];
 
-            for i in 0..args[3].parse::<u64>().unwrap(){
+            for i in 0..args[3].parse::<u64>().expect("Could not parse span range stop"){
                 file.read_exact(&mut buffer).expect("failed to fill buffer");
-                if i >= args[2].parse::<u64>().unwrap(){
+                if i >= args[2].parse::<u64>().expect("Could not parse span range start"){
                     let s: Span = bytemuck::pod_read_unaligned(&buffer);
 
-                    if s.tag >= args[4].parse::<u64>().unwrap() && s.tag <= args [5].parse::<u64>().unwrap(){
+                    if s.tag >= args[4].parse::<u64>().expect("Could not parse tag range start") && s.tag <= args [5].parse::<u64>().expect("Could not parse span range stop"){
                         spans.push(s);                    
                 }
             }
