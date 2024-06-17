@@ -1,0 +1,15 @@
+[package]
+name = "tsc-trace-viewer"
+version = "0.6.0"
+edition = "2021"
+license = "MIT"
+description = "viewer for binary output of tsc-trace"
+
+[dependencies]
+[dependencies.bytemuck]
+version = "1.16.0"
+features = ["derive"]
+
+[dependencies.sdl2]
+version = "0.36.0"
+features = ["ttf"]

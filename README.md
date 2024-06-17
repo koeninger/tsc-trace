@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/tsc-trace.svg)](https://crates.io/crates/tsc-trace)
 
-Trace the number of cycles used by spans of code, via the x86 rdtsc instruction or ARM cntvct_el0 register
+Trace the number of cycles used by spans of code, via the x86 rdtsc instruction or reading ARM cntvct_el0 register.
 It will probably give questionable results unless you're pinning threads to cores.
 
 See [main.rs](https://github.com/koeninger/tsc-trace/blob/main/src/main.rs) for example usage.
@@ -20,6 +20,24 @@ This is useful if you want to leave timing markers in place for future use, but 
 
 The feature `"const_array"` will use a const array rather than a vec for the thread local storage of traces.
 
-The feature `"lfence"` will add an lfence instruction before and after each call to rdtsc.
+The feature `"lfence"` will add an lfence instruction before and after each call to rdtsc (x86 only).
 
 Run e.g. `cargo bench --features "tsc-trace/capacity_1_million"` to show the runtime overhead difference between using this library, vs directly calling rdtsc twice and subtracting.
+
+## Viewer
+
+Dependency on SDL2 (https://crates.io/crates/sdl2) and bytemuck (https://crates.io/crates/bytemuck).
+
+A visual representation of cycles gathered by tsc-trace.
+
+Takes a file that has traces written to it by write_traces_binary through command line arguments, format:
+(file path) (span range start) (span range stop) (tag range start) (tag range stop)
+
+the start and stop ranges are in number of spans, not bytes or clock cycles.
+
+use Q, W, E to zoom out, in, and reset.
+
+use A, S, D to move right, left, and reset.
+
+Clicking on span will display the tag and span length. This will not work in instances where spans are so small that multiple may be drawn per pixel.
+(these instances are represented by a lighter colorset being used)
