@@ -1,19 +1,18 @@
+use bytemuck::Pod;
+use bytemuck::Zeroable;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::TextureCreator;
-use sdl2::render::WindowCanvas;
+use sdl2::render::{TextureCreator, WindowCanvas};
 use sdl2::ttf::Font;
 use sdl2::video::WindowContext;
 use std::env;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 use std::thread;
-use std::time::Duration;
-use std::io::prelude::*;
-use bytemuck::Pod;
-use bytemuck::Zeroable;
-use std::fs::File;
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 #[repr(C)]
@@ -54,9 +53,9 @@ pub struct App {
 impl App {
     pub fn new(filled_spans: &mut Vec<Span>) -> Result<App, String> {
         let mut spans: Vec<Span> = vec![];
-        for span in filled_spans{
+        for span in filled_spans {
             spans.push(*span);
-        };
+        }
         assert!(
             !spans.is_empty(),
             "expected a non-empty array of trace spans"
@@ -80,44 +79,42 @@ impl App {
         let canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
         let texture_creator = canvas.texture_creator();
 
-        Ok(
-            App {
-                texture_creator,
-                draw_zones,
-                window_width,
-                background_color: Color::RGB(192, 192, 192),
-                colors: vec![
-                    (255, 0, 0),
-                    (0, 255, 0),
-                    (0, 0, 255),
-                    (255, 255, 0),
-                    (0, 255, 255),
-                    (255, 0, 255),
-                ]
-                .into_iter()
-                .map(|c| Color::RGB(c.0, c.1, c.2))
-                .collect(),
-                muted_colors: vec![
-                    (192, 0, 0),
-                    (0, 192, 0),
-                    (0, 0, 192),
-                    (192, 192, 0),
-                    (0, 192, 192),
-                    (192, 0, 192),
-                ]
-                .into_iter()
-                .map(|c| Color::RGB(c.0, c.1, c.2))
-                .collect(),
-                sdl_context,
-                canvas,
-                scale,
-                span_height: 15,
-                span_spacing: 2,
-                min_start,
-                max_stop,
-                scroll: 0,
-            }
-        )
+        Ok(App {
+            texture_creator,
+            draw_zones,
+            window_width,
+            background_color: Color::RGB(192, 192, 192),
+            colors: vec![
+                (255, 0, 0),
+                (0, 255, 0),
+                (0, 0, 255),
+                (255, 255, 0),
+                (0, 255, 255),
+                (255, 0, 255),
+            ]
+            .into_iter()
+            .map(|c| Color::RGB(c.0, c.1, c.2))
+            .collect(),
+            muted_colors: vec![
+                (192, 0, 0),
+                (0, 192, 0),
+                (0, 0, 192),
+                (192, 192, 0),
+                (0, 192, 192),
+                (192, 0, 192),
+            ]
+            .into_iter()
+            .map(|c| Color::RGB(c.0, c.1, c.2))
+            .collect(),
+            sdl_context,
+            canvas,
+            scale,
+            span_height: 15,
+            span_spacing: 2,
+            min_start,
+            max_stop,
+            scroll: 0,
+        })
     }
 
     fn draw_span(&mut self, span: &Span) {
@@ -141,7 +138,7 @@ impl App {
             x_start: scrolled_x,
             y_stop: (self.y_pos(span) + self.span_height) as u64,
             x_stop: (scrolled_x + x_sz as i32),
-            tag_data: Span {tag: span.tag, start: span.start, stop: span.stop},
+            tag_data: *span,
         });
     }
 
@@ -208,6 +205,7 @@ impl App {
         let mut draw_len = 0;
 
         'running: loop {
+            let loop_time = Instant::now();
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. } => break 'running,
@@ -280,8 +278,10 @@ impl App {
                     draw_len.try_into().unwrap(),
                 )?;
             }
+
             self.canvas.present();
-            thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
+
+            thread::sleep(Duration::new(0, (1_000_000_000u32 - loop_time.elapsed().as_millis() as u32) / 30));
         }
 
         Ok(())
@@ -303,15 +303,16 @@ pub fn load_args() -> Vec<Span> {
                     let s: Span = bytemuck::pod_read_unaligned(&buffer);
 
                     if s.tag >= args[4].parse::<u64>().expect("Could not parse tag range start") && s.tag <= args [5].parse::<u64>().expect("Could not parse span range stop"){
-                        spans.push(s);                    
+                        spans.push(s);
+                    }
                 }
-            }
             }
         },
         _ => panic!("Command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop)."),
     }
     spans
 }
+
 
 pub fn main() -> Result<(), String> {
     let mut filled_spans = load_args();
