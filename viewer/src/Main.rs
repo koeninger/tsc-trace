@@ -293,18 +293,60 @@ pub fn load_args() -> Vec<Span> {
     let args: Vec<_> = env::args().collect();
     match args.len() {
         1 => {panic!("Command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop).")},
+        2 => {
+            panic!("Some command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop).")
+        },
+        3 => {
+            panic!("Some command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop).")
+        },
+        4 => {
+            panic!("Some command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop).")
+        },
+        5 => {
+            panic!("Some command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop).")
+        },
         6 =>{
             let mut file = File::open(&args[1]).expect("failed to open file");
             let mut buffer = [0; 24];
 
-            for i in 0..args[3].parse::<u64>().expect("Could not parse span range stop"){
+            /*
+            loop{
                 file.read_exact(&mut buffer).expect("failed to fill buffer");
-                if i >= args[2].parse::<u64>().expect("Could not parse span range start"){
-                    let s: Span = bytemuck::pod_read_unaligned(&buffer);
-
-                    if s.tag >= args[4].parse::<u64>().expect("Could not parse tag range start") && s.tag <= args [5].parse::<u64>().expect("Could not parse span range stop"){
-                        spans.push(s);
+                let s: Span = bytemuck::pod_read_unaligned(&buffer);
+                if s.start >= args[3].parse::<u64>().expect("Could not parse span range stop"){
+                    println!("broke, {0:?}, {1:?}", s.start, args[3]);
+                    break;
+                }
+                println!("got through");
+                if s.start >= args[2].parse::<u64>().expect("Could not parse span range start")
+                    && s.tag >= args[4].parse::<u64>().expect("Could not parse tag range start")
+                    && s.tag <= args [5].parse::<u64>().expect("Could not parse span range stop")
+                {
+                    println!("pushed");
+                    spans.push(s);
+                }
+                println!("running again");
+            }
+            */
+            
+            loop{
+                file.read_exact(&mut buffer).expect("failed to fill buffer");
+                let mut s: Span = bytemuck::pod_read_unaligned(&buffer);
+                if s.tag >= args[4].parse::<u64>().expect("Could not parse tag range start")
+                    && s.tag <= args [5].parse::<u64>().expect("Could not parse span range stop")
+                {
+                    let min_start = s.start;
+                    while s.start <= min_start + args[3].parse::<u64>().expect("Could not parse span range stop"){
+                        if s.start >= min_start + args[2].parse::<u64>().expect("Could not parse span range start")
+                            && s.tag >= args[4].parse::<u64>().expect("Could not parse tag range start")
+                            && s.tag <= args [5].parse::<u64>().expect("Could not parse span range stop")
+                        {
+                            spans.push(s);
+                        }
+                        file.read_exact(&mut buffer).expect("failed to fill buffer");
+                        s = bytemuck::pod_read_unaligned(&buffer);
                     }
+                    break;
                 }
             }
         },

@@ -33,7 +33,7 @@ A visual representation of cycles gathered by tsc-trace.
 Takes a file that has traces written to it by write_traces_binary through command line arguments, format:
 (file path) (span range start) (span range stop) (tag range start) (tag range stop)
 
-the start and stop ranges are in number of spans, not bytes or clock cycles.
+the span start and stop ranges are in clock cycles since the start of the first trace in the file.
 
 use Q, W, E to zoom out, in, and reset.
 
