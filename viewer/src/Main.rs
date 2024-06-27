@@ -281,7 +281,7 @@ impl App {
 
             self.canvas.present();
 
-            thread::sleep(Duration::new(0, (1_000_000_000u32 - loop_time.elapsed().as_millis() as u32) / 30));
+            thread::sleep(Duration::new(0, 1_000_000_000u32.saturating_sub(loop_time.elapsed().as_millis() as u32) / 30));
         }
 
         Ok(())
