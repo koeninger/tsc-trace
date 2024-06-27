@@ -70,7 +70,7 @@ impl App {
         let video_subsystem = sdl_context.video()?;
         let scale = (max_stop - min_start) / window_width as u64;
         let window = video_subsystem
-            .window("tsc-trace viewer", window_width, window_height)
+            .window(&env::args().collect::<Vec<String>>()[1], window_width, window_height)
             .position_centered()
             .opengl()
             .resizable()
