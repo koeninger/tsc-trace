@@ -14,6 +14,8 @@ use std::path::Path;
 use std::thread;
 use std::time::{Duration, Instant};
 
+const FRAME: u32 = 33_333_333;
+
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 #[repr(C)]
 pub struct Span {
@@ -287,13 +289,14 @@ impl App {
 
             thread::sleep(Duration::new(
                 0,
-                1_000_000_000u32.saturating_sub(
+                FRAME.saturating_sub(
                     loop_time
                         .elapsed()
                         .as_nanos()
                         .try_into()
-                        .unwrap_or(u32::MAX),
-                ) / 30,
+                        .unwrap_or(u32::MAX)
+                        / 30,
+                ),
             ));
         }
 
