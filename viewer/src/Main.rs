@@ -126,12 +126,20 @@ impl App {
     fn draw_span(&mut self, span: &Span) {
         let x_sz = self.x_size(span);
         let scrolled_x = self.x_pos(span).saturating_sub(self.scroll);
-        self.canvas.set_draw_color(if x_sz < 1 {
-            self.colors[span.tag as usize % self.colors.len()]
-        } else {
-            self.muted_colors[span.tag as usize % self.muted_colors.len()]
-        });
-        self.canvas
+        if scrolled_x < self.window_width.try_into().expect("Window width couldn't be parsed")&&(scrolled_x + x_sz as i32) > 0{
+            self.canvas.set_draw_color(if x_sz < 1 {
+                self.colors[span.tag as usize % self.colors.len()]
+            } else {
+                self.draw_zones.push(Area {
+                    y_start: self.y_pos(span) as u64,
+                    x_start: scrolled_x,
+                    y_stop: (self.y_pos(span) + self.span_height) as u64,
+                    x_stop: (scrolled_x + x_sz as i32),
+                    tag_data: *span,
+                });
+                self.muted_colors[span.tag as usize % self.muted_colors.len()]
+            });
+            self.canvas
             .fill_rect(Rect::new(
                 scrolled_x,
                 self.y_pos(span),
@@ -139,13 +147,7 @@ impl App {
                 (self.span_height) as u32,
             ))
             .unwrap_or_else(|e| panic!("draw failure {e} for span {span:?}"));
-        self.draw_zones.push(Area {
-            y_start: self.y_pos(span) as u64,
-            x_start: scrolled_x,
-            y_stop: (self.y_pos(span) + self.span_height) as u64,
-            x_stop: (scrolled_x + x_sz as i32),
-            tag_data: *span,
-        });
+        }
     }
 
     fn x_size(&self, span: &Span) -> u32 {
