@@ -287,7 +287,13 @@ impl App {
 
             thread::sleep(Duration::new(
                 0,
-                1_000_000_000u32.saturating_sub(loop_time.elapsed().as_millis() as u32) / 30,
+                1_000_000_000u32.saturating_sub(
+                    loop_time
+                        .elapsed()
+                        .as_nanos()
+                        .try_into()
+                        .unwrap_or(u32::MAX),
+                ) / 30,
             ));
         }
 
