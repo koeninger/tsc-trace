@@ -286,7 +286,7 @@ impl App {
             }
 
             self.canvas.present();
-
+            
             thread::sleep(Duration::new(
                 0,
                 FRAME.saturating_sub(
@@ -294,10 +294,11 @@ impl App {
                         .elapsed()
                         .as_nanos()
                         .try_into()
-                        .unwrap_or(u32::MAX)
-                        / 30,
+                        .unwrap_or(u32::MAX),
                 ),
             ));
+            
+            println!("{0}", loop_time.elapsed().as_nanos());
         }
 
         Ok(())
