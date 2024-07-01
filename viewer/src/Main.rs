@@ -70,7 +70,11 @@ impl App {
         let video_subsystem = sdl_context.video()?;
         let scale = (max_stop - min_start) / window_width as u64;
         let window = video_subsystem
-            .window(&env::args().collect::<Vec<String>>()[1], window_width, window_height)
+            .window(
+                &env::args().collect::<Vec<String>>()[1],
+                window_width,
+                window_height,
+            )
             .position_centered()
             .opengl()
             .resizable()
@@ -281,7 +285,10 @@ impl App {
 
             self.canvas.present();
 
-            thread::sleep(Duration::new(0, 1_000_000_000u32.saturating_sub(loop_time.elapsed().as_millis() as u32) / 30));
+            thread::sleep(Duration::new(
+                0,
+                1_000_000_000u32.saturating_sub(loop_time.elapsed().as_millis() as u32) / 30,
+            ));
         }
 
         Ok(())
@@ -312,18 +319,22 @@ pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
         6 =>{
             let mut file = File::open(&args[1]).expect("failed to open file");
             let mut buffer = [0; 24];
+            let span_start = args[2].parse::<u64>().expect("Could not parse span range start");
+            let span_stop = args[3].parse::<u64>().expect("Could not parse span range stop");
+            let tag_start = args[4].parse::<u64>().expect("Could not parse tag range start");
+            let tag_stop = args [5].parse::<u64>().expect("Could not parse tag range stop");
 
             loop{
                 file.read_exact(&mut buffer).expect("failed to fill buffer");
                 let mut s: Span = bytemuck::pod_read_unaligned(&buffer);
-                if s.tag >= args[4].parse::<u64>().expect("Could not parse tag range start")
-                    && s.tag <= args [5].parse::<u64>().expect("Could not parse span range stop")
+                if s.tag >= tag_start
+                    && s.tag <= tag_stop
                 {
                     let min_start = s.start;
-                    while s.start <= min_start.saturating_add(args[3].parse::<u64>().expect("Could not parse span range stop")){
-                        if s.start >= min_start.saturating_add(args[2].parse::<u64>().expect("Could not parse span range start"))
-                            && s.tag >= args[4].parse::<u64>().expect("Could not parse tag range start")
-                            && s.tag <= args [5].parse::<u64>().expect("Could not parse span range stop")
+                    while s.start <= min_start.saturating_add(span_stop){
+                        if s.start >= min_start.saturating_add(span_start)
+                            && s.tag >= tag_start
+                            && s.tag <= tag_stop
                         {
                             spans.push(s);
                         }
@@ -340,11 +351,10 @@ pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
                 }
             }
         },
-        _ => panic!("Command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop)."),
+        _ => panic!("Command line arguments could not be parsed. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop)."),
     }
     spans
 }
-
 
 pub fn main() -> Result<(), String> {
     let mut filled_spans = load_args(env::args().collect::<Vec<String>>());
