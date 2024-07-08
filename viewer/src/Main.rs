@@ -32,6 +32,12 @@ pub struct Area {
     tag_data: Span,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct Buffer {
+    x: i32,
+    y: i32,
+}
+
 pub struct App {
     window_width: u32,
     background_color: Color,
@@ -126,7 +132,13 @@ impl App {
     fn draw_span(&mut self, span: &Span) {
         let x_sz = self.x_size(span);
         let scrolled_x = self.x_pos(span).saturating_sub(self.scroll);
-        if scrolled_x < self.window_width.try_into().expect("Window width couldn't be parsed")&&(scrolled_x + x_sz as i32) > 0{
+        if scrolled_x
+            < self
+                .window_width
+                .try_into()
+                .expect("Window width couldn't be parsed")
+            && (scrolled_x + x_sz as i32) > 0
+        {
             self.canvas.set_draw_color(if x_sz < 1 {
                 self.colors[span.tag as usize % self.colors.len()]
             } else {
@@ -140,13 +152,13 @@ impl App {
                 self.muted_colors[span.tag as usize % self.muted_colors.len()]
             });
             self.canvas
-            .fill_rect(Rect::new(
-                scrolled_x,
-                self.y_pos(span),
-                x_sz,
-                (self.span_height) as u32,
-            ))
-            .unwrap_or_else(|e| panic!("draw failure {e} for span {span:?}"));
+                .fill_rect(Rect::new(
+                    scrolled_x,
+                    self.y_pos(span),
+                    x_sz,
+                    (self.span_height) as u32,
+                ))
+                .unwrap_or_else(|e| panic!("draw failure {e} for span {span:?}"));
         }
     }
 
@@ -211,6 +223,27 @@ impl App {
         let mut draw_y = 0;
         let mut draw_tag = 0;
         let mut draw_len = 0;
+        let mut span_buffer: Vec<Buffer> = vec![Buffer { x: -1, y: -1 }];
+
+        for span in &spans {
+            let pairs = &mut span_buffer.clone().into_iter().peekable();
+            loop {
+                let Some(pair) = pairs.next() else {
+                    panic!("Attempted to access past the end of the span buffer")
+                };
+                if self.y_pos(span) == pair.y {
+                    break;
+                }
+                if pairs.peek().is_none() {
+                    span_buffer.push(Buffer {
+                        x: -1,
+                        y: self.y_pos(span),
+                    });
+                    break;
+                }
+            }
+        }
+        span_buffer.remove(0);
 
         'running: loop {
             let loop_time = Instant::now();
@@ -273,7 +306,19 @@ impl App {
             self.canvas.clear();
             self.draw_zones.clear();
             for span in &spans {
-                self.draw_span(span);
+                let pos = Buffer {
+                    x: self.x_pos(span),
+                    y: self.y_pos(span),
+                };
+                for pair in &mut span_buffer {
+                    if pos.y == pair.y {
+                        if pos.x != pair.x || self.x_size(span) > 0 {
+                            self.draw_span(span);
+                            *pair = pos;
+                        }
+                        break;
+                    }
+                }
             }
             if (draw_x > 0) && (draw_y > 0) {
                 Self::draw_text(
@@ -288,7 +333,7 @@ impl App {
             }
 
             self.canvas.present();
-            
+
             thread::sleep(Duration::new(
                 0,
                 FRAME.saturating_sub(
@@ -299,7 +344,7 @@ impl App {
                         .unwrap_or(u32::MAX),
                 ),
             ));
-            
+
             println!("{0}", loop_time.elapsed().as_nanos());
         }
 
