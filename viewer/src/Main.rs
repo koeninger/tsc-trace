@@ -1,6 +1,6 @@
 use bytemuck::Pod;
 use bytemuck::Zeroable;
-use sdl2::event::Event;
+use sdl2::event::{Event,WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
@@ -293,6 +293,9 @@ impl App {
                     Event::MouseButtonUp { .. } => {
                         draw_x = 0;
                         draw_y = 0;
+                    }
+                    Event::Window{win_event: WindowEvent::Resized(w, ..), .. } =>  {
+                        self.window_width = w as u32;
                     }
                     _ => {}
                 }
