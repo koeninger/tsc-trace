@@ -13,6 +13,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::thread;
 use std::time::{Duration, Instant};
+use std::collections::HashMap;
 
 const FRAME: u32 = 33_333_333;
 
@@ -223,27 +224,15 @@ impl App {
         let mut draw_y = 0;
         let mut draw_tag = 0;
         let mut draw_len = 0;
-        let mut span_buffer: Vec<Buffer> = vec![Buffer { x: -1, y: -1 }];
+        let mut span_buffer: Vec<Buffer> = vec![];
+        let mut span_buffer_map: HashMap<i32,i32> = HashMap::new();
 
         for span in &spans {
-            let pairs = &mut span_buffer.clone().into_iter().peekable();
-            loop {
-                let Some(pair) = pairs.next() else {
-                    panic!("Attempted to access past the end of the span buffer")
-                };
-                if self.y_pos(span) == pair.y {
-                    break;
-                }
-                if pairs.peek().is_none() {
-                    span_buffer.push(Buffer {
-                        x: -1,
-                        y: self.y_pos(span),
-                    });
-                    break;
-                }
-            }
+            span_buffer_map.insert(self.y_pos(span), -1);
         }
-        span_buffer.remove(0);
+        for (y, x) in span_buffer_map{
+            span_buffer.push(Buffer {x ,y});
+        }
 
         'running: loop {
             let loop_time = Instant::now();
