@@ -1,19 +1,19 @@
 use bytemuck::Pod;
 use bytemuck::Zeroable;
-use sdl2::event::{Event,WindowEvent};
+use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::{TextureCreator, WindowCanvas};
 use sdl2::ttf::Font;
 use sdl2::video::WindowContext;
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::thread;
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
 
 const FRAME: u32 = 33_333_333;
 
@@ -34,7 +34,7 @@ pub struct Area {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Buffer {
+pub struct Position {
     x: i32,
     y: i32,
 }
@@ -224,14 +224,15 @@ impl App {
         let mut draw_y = 0;
         let mut draw_tag = 0;
         let mut draw_len = 0;
-        let mut span_buffer: Vec<Buffer> = vec![];
-        let mut span_buffer_map: HashMap<i32,i32> = HashMap::new();
+        let mut span_buffer: Vec<Position> = vec![];
+        let mut span_buffer_map: HashMap<i32, i32> = HashMap::new();
 
         for span in &spans {
             span_buffer_map.insert(self.y_pos(span), -1);
         }
-        for (y, x) in span_buffer_map{
-            span_buffer.push(Buffer {x ,y});
+        //converting the HashMap to a Vec here for increased performance on small numbers of tags
+        for (y, x) in span_buffer_map {
+            span_buffer.push(Position { x, y });
         }
 
         'running: loop {
@@ -283,7 +284,10 @@ impl App {
                         draw_x = 0;
                         draw_y = 0;
                     }
-                    Event::Window{win_event: WindowEvent::Resized(w, ..), .. } =>  {
+                    Event::Window {
+                        win_event: WindowEvent::Resized(w, ..),
+                        ..
+                    } => {
                         self.window_width = w as u32;
                     }
                     _ => {}
@@ -298,15 +302,15 @@ impl App {
             self.canvas.clear();
             self.draw_zones.clear();
             for span in &spans {
-                let pos = Buffer {
+                let pos = Position {
                     x: self.x_pos(span),
                     y: self.y_pos(span),
                 };
-                for pair in &mut span_buffer {
-                    if pos.y == pair.y {
-                        if pos.x != pair.x || self.x_size(span) > 0 {
+                for buffer_pos in &mut span_buffer {
+                    if pos.y == buffer_pos.y {
+                        if pos.x != buffer_pos.x || self.x_size(span) > 0 {
                             self.draw_span(span);
-                            *pair = pos;
+                            *buffer_pos = pos;
                         }
                         break;
                     }
