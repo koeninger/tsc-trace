@@ -1,12 +1,13 @@
 use bytemuck::Pod;
 use bytemuck::Zeroable;
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::{TextureCreator, WindowCanvas};
 use sdl2::ttf::Font;
 use sdl2::video::WindowContext;
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -30,6 +31,12 @@ pub struct Area {
     y_stop: u64,
     x_stop: i32,
     tag_data: Span,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Position {
+    x: i32,
+    y: i32,
 }
 
 pub struct App {
@@ -126,26 +133,36 @@ impl App {
     fn draw_span(&mut self, span: &Span) {
         let x_sz = self.x_size(span);
         let scrolled_x = self.x_pos(span).saturating_sub(self.scroll);
-        self.canvas.set_draw_color(if x_sz < 1 {
-            self.colors[span.tag as usize % self.colors.len()]
-        } else {
-            self.muted_colors[span.tag as usize % self.muted_colors.len()]
-        });
-        self.canvas
-            .fill_rect(Rect::new(
-                scrolled_x,
-                self.y_pos(span),
-                x_sz,
-                (self.span_height) as u32,
-            ))
-            .unwrap_or_else(|e| panic!("draw failure {e} for span {span:?}"));
-        self.draw_zones.push(Area {
-            y_start: self.y_pos(span) as u64,
-            x_start: scrolled_x,
-            y_stop: (self.y_pos(span) + self.span_height) as u64,
-            x_stop: (scrolled_x + x_sz as i32),
-            tag_data: *span,
-        });
+        //preventing drawing if span would be outside of the window
+        if scrolled_x
+            < self
+                .window_width
+                .try_into()
+                .expect("Window width couldn't be parsed")
+            && (scrolled_x + x_sz as i32) > 0
+        {
+            //using lighter color palette if multiple small spans could occupy the same pixel
+            self.canvas.set_draw_color(if x_sz < 1 {
+                self.colors[span.tag as usize % self.colors.len()]
+            } else {
+                self.draw_zones.push(Area {
+                    y_start: self.y_pos(span) as u64,
+                    x_start: scrolled_x,
+                    y_stop: (self.y_pos(span) + self.span_height) as u64,
+                    x_stop: (scrolled_x + x_sz as i32),
+                    tag_data: *span,
+                });
+                self.muted_colors[span.tag as usize % self.muted_colors.len()]
+            });
+            self.canvas
+                .fill_rect(Rect::new(
+                    scrolled_x,
+                    self.y_pos(span),
+                    x_sz,
+                    (self.span_height) as u32,
+                ))
+                .unwrap_or_else(|e| panic!("draw failure {e} for span {span:?}"));
+        }
     }
 
     fn x_size(&self, span: &Span) -> u32 {
@@ -209,6 +226,17 @@ impl App {
         let mut draw_y = 0;
         let mut draw_tag = 0;
         let mut draw_len = 0;
+        let mut all_spans_map: HashMap<i32, i32> = HashMap::new();
+        let mut most_recent_spans: Vec<Position> = vec![];
+
+        //getting each y position to be drawn
+        for span in &spans {
+            all_spans_map.insert(self.y_pos(span), -1);
+        }
+        //converting the HashMap to a Vec for increased performance on small numbers of tags
+        for (y, x) in all_spans_map {
+            most_recent_spans.push(Position { x, y });
+        }
 
         'running: loop {
             let loop_time = Instant::now();
@@ -221,23 +249,26 @@ impl App {
                     } => {
                         keycount += 1;
                         match keycode {
+                            //zoom out
                             Keycode::Q => {
                                 self.scale = self
                                     .scale
                                     .saturating_add((keycount * keycount).try_into().unwrap())
-                            } //plus
+                            }
+                            //zoom in
                             Keycode::W => {
                                 self.scale = self
                                     .scale
                                     .saturating_sub((keycount * keycount).try_into().unwrap())
-                            } //minus
+                            }
+                            //reset
                             Keycode::E => {
                                 self.scale =
                                     (self.max_stop - self.min_start) / (self.window_width as u64)
-                            } //reset
-                            Keycode::A => self.scroll = self.scroll.saturating_add(keycount),
-                            Keycode::S => self.scroll = self.scroll.saturating_sub(keycount),
-                            Keycode::D => self.scroll = 0,
+                            }
+                            Keycode::S => self.scroll = self.scroll.saturating_add(keycount), //scroll right
+                            Keycode::A => self.scroll = self.scroll.saturating_sub(keycount), //scroll left
+                            Keycode::D => self.scroll = 0, //reset
                             _ => {}
                         }
                     }
@@ -259,6 +290,12 @@ impl App {
                         draw_x = 0;
                         draw_y = 0;
                     }
+                    Event::Window {
+                        win_event: WindowEvent::Resized(w, ..),
+                        ..
+                    } => {
+                        self.window_width = w as u32;
+                    }
                     _ => {}
                 }
             }
@@ -271,7 +308,20 @@ impl App {
             self.canvas.clear();
             self.draw_zones.clear();
             for span in &spans {
-                self.draw_span(span);
+                let pos = Position {
+                    x: self.x_pos(span),
+                    y: self.y_pos(span),
+                };
+                //preventing draw_span from being called if it would draw to an already filled position
+                for buffer_pos in &mut most_recent_spans {
+                    if pos.y == buffer_pos.y {
+                        if pos.x != buffer_pos.x || self.x_size(span) > 0 {
+                            self.draw_span(span);
+                            *buffer_pos = pos;
+                        }
+                        break;
+                    }
+                }
             }
             if (draw_x > 0) && (draw_y > 0) {
                 Self::draw_text(
@@ -286,7 +336,7 @@ impl App {
             }
 
             self.canvas.present();
-            
+
             thread::sleep(Duration::new(
                 0,
                 FRAME.saturating_sub(
@@ -297,8 +347,6 @@ impl App {
                         .unwrap_or(u32::MAX),
                 ),
             ));
-            
-            println!("{0}", loop_time.elapsed().as_nanos());
         }
 
         Ok(())
@@ -309,6 +357,7 @@ pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
     let mut spans = vec![];
     match args.len() {
         1 => {panic!("Command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop).")},
+        //loading default arguments as long as the file path is provided
         2 => {
             args.push(0.to_string());
             spans = load_args(args);
