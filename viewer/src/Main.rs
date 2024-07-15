@@ -133,6 +133,7 @@ impl App {
     fn draw_span(&mut self, span: &Span) {
         let x_sz = self.x_size(span);
         let scrolled_x = self.x_pos(span).saturating_sub(self.scroll);
+        //preventing drawing if span would be outside of the window
         if scrolled_x
             < self
                 .window_width
@@ -140,6 +141,7 @@ impl App {
                 .expect("Window width couldn't be parsed")
             && (scrolled_x + x_sz as i32) > 0
         {
+            //using lighter color palette if multiple small spans could occupy the same pixel
             self.canvas.set_draw_color(if x_sz < 1 {
                 self.colors[span.tag as usize % self.colors.len()]
             } else {
@@ -224,15 +226,16 @@ impl App {
         let mut draw_y = 0;
         let mut draw_tag = 0;
         let mut draw_len = 0;
-        let mut span_buffer: Vec<Position> = vec![];
-        let mut span_buffer_map: HashMap<i32, i32> = HashMap::new();
+        let mut all_spans_map: HashMap<i32, i32> = HashMap::new();
+        let mut most_recent_spans: Vec<Position> = vec![];
 
+        //getting each y position to be drawn
         for span in &spans {
-            span_buffer_map.insert(self.y_pos(span), -1);
+            all_spans_map.insert(self.y_pos(span), -1);
         }
-        //converting the HashMap to a Vec here for increased performance on small numbers of tags
-        for (y, x) in span_buffer_map {
-            span_buffer.push(Position { x, y });
+        //converting the HashMap to a Vec for increased performance on small numbers of tags
+        for (y, x) in all_spans_map {
+            most_recent_spans.push(Position { x, y });
         }
 
         'running: loop {
@@ -246,23 +249,26 @@ impl App {
                     } => {
                         keycount += 1;
                         match keycode {
+                            //zoom out
                             Keycode::Q => {
                                 self.scale = self
                                     .scale
                                     .saturating_add((keycount * keycount).try_into().unwrap())
-                            } //plus
+                            }
+                            //zoom in
                             Keycode::W => {
                                 self.scale = self
                                     .scale
                                     .saturating_sub((keycount * keycount).try_into().unwrap())
-                            } //minus
+                            }
+                            //reset
                             Keycode::E => {
                                 self.scale =
                                     (self.max_stop - self.min_start) / (self.window_width as u64)
-                            } //reset
-                            Keycode::A => self.scroll = self.scroll.saturating_add(keycount),
-                            Keycode::S => self.scroll = self.scroll.saturating_sub(keycount),
-                            Keycode::D => self.scroll = 0,
+                            }
+                            Keycode::S => self.scroll = self.scroll.saturating_add(keycount), //scroll right
+                            Keycode::A => self.scroll = self.scroll.saturating_sub(keycount), //scroll left
+                            Keycode::D => self.scroll = 0, //reset
                             _ => {}
                         }
                     }
@@ -306,7 +312,8 @@ impl App {
                     x: self.x_pos(span),
                     y: self.y_pos(span),
                 };
-                for buffer_pos in &mut span_buffer {
+                //preventing draw_span from being called if it would draw to an already filled position
+                for buffer_pos in &mut most_recent_spans {
                     if pos.y == buffer_pos.y {
                         if pos.x != buffer_pos.x || self.x_size(span) > 0 {
                             self.draw_span(span);
@@ -340,8 +347,6 @@ impl App {
                         .unwrap_or(u32::MAX),
                 ),
             ));
-
-            println!("{0}", loop_time.elapsed().as_nanos());
         }
 
         Ok(())
@@ -352,6 +357,7 @@ pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
     let mut spans = vec![];
     match args.len() {
         1 => {panic!("Command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop).")},
+        //loading default arguments as long as the file path is provided
         2 => {
             args.push(0.to_string());
             spans = load_args(args);
