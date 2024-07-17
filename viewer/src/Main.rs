@@ -1,3 +1,6 @@
+pub mod config;
+
+use std::collections::HashMap;
 use bytemuck::Pod;
 use bytemuck::Zeroable;
 use sdl2::event::{Event, WindowEvent};
@@ -7,7 +10,6 @@ use sdl2::rect::Rect;
 use sdl2::render::{TextureCreator, WindowCanvas};
 use sdl2::ttf::Font;
 use sdl2::video::WindowContext;
-use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -25,6 +27,7 @@ pub struct Span {
     stop: u64,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Area {
     y_start: u64,
     x_start: i32,
@@ -196,10 +199,20 @@ impl App {
         font: &sdl2::ttf::Font,
         x: i32,
         y: i32,
-        tag: i32,
-        len: i32,
+        tag_data: &Span,
     ) -> Result<(), String> {
-        let tag_text: String = format!("{0},{1}", tag, len);
+        let config = config::config();
+        let tag_text: String;
+        match config.tag_names {
+            Some(map) => {
+                tag_text = map.get(&tag_data.tag).unwrap_or_else(tag_data.tag).to_string();
+            }
+            None =>{
+                tag_text = tag_data.tag.to_string();
+            }
+        }
+        let tag_text = format!("{0},{1}", tag_text, (tag_data.stop-tag_data.start));
+
         let surface = font
             .render(&tag_text)
             .blended(Color::RGBA(0, 0, 0, 128))
@@ -224,8 +237,7 @@ impl App {
         let mut keycount: i32 = 0;
         let mut draw_x = 0;
         let mut draw_y = 0;
-        let mut draw_tag = 0;
-        let mut draw_len = 0;
+        let mut draw_data = Span {tag:0,start:0,stop:0};
         let mut all_spans_map: HashMap<i32, i32> = HashMap::new();
         let mut most_recent_spans: Vec<Position> = vec![];
 
@@ -281,10 +293,10 @@ impl App {
                             {
                                 draw_x = x;
                                 draw_y = y;
-                                draw_tag = zone.tag_data.tag;
-                                draw_len = zone.tag_data.stop - zone.tag_data.start;
+                                draw_data = zone.tag_data;
                             }
                         }
+                        println!("{0:?}", draw_data);
                     }
                     Event::MouseButtonUp { .. } => {
                         draw_x = 0;
@@ -330,8 +342,7 @@ impl App {
                     &font,
                     draw_x,
                     draw_y,
-                    draw_tag.try_into().unwrap(),
-                    draw_len.try_into().unwrap(),
+                    &draw_data,
                 )?;
             }
 

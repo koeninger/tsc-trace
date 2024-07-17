@@ -43,3 +43,5 @@ Use A, S, D to move right, left, and reset.
 
 Clicking on span will display the tag and span length. This will not work in instances where spans are so small that multiple may be drawn per pixel.
 (these instances are represented by a lighter colorset being used)
+
+Tag numbers can be replaced with strings by editing config.js.

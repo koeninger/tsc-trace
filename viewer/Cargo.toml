@@ -6,10 +6,7 @@ license = "MIT"
 description = "viewer for binary output of tsc-trace"
 
 [dependencies]
-[dependencies.bytemuck]
-version = "1.16.0"
-features = ["derive"]
-
-[dependencies.sdl2]
-version = "0.36.0"
-features = ["ttf"]
+config = {version = "0.14.0", features = ["json5"]}
+bytemuck = {version = "1.16.0", features = ["derive"]}
+sdl2 = {version = "0.36.0", features = ["ttf"]}
+serde = "1.0.204"
