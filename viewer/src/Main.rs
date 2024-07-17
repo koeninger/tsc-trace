@@ -205,7 +205,7 @@ impl App {
         let tag_text: String;
         match config.tag_names {
             Some(map) => {
-                tag_text = map.get(&tag_data.tag).expect("couldn't find tag name").to_string();
+                tag_text = map.get(&tag_data.tag).unwrap_or_else(tag_data.tag).to_string();
             }
             None =>{
                 tag_text = tag_data.tag.to_string();
