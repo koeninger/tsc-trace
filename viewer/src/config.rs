@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 pub fn config_builder() -> ConfigBuilder<DefaultState> {
 	Config::builder()
 		.add_source(config::File::new(
-			"tag_names.js",
+			"config.js",
 			config::FileFormat::Json5
 		))
 }
