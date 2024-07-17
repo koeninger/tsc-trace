@@ -1,3 +1,6 @@
+pub mod config;
+
+use std::collections::HashMap;
 use bytemuck::Pod;
 use bytemuck::Zeroable;
 use sdl2::event::{Event, WindowEvent};
@@ -7,7 +10,6 @@ use sdl2::rect::Rect;
 use sdl2::render::{TextureCreator, WindowCanvas};
 use sdl2::ttf::Font;
 use sdl2::video::WindowContext;
-use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -199,7 +201,18 @@ impl App {
         y: i32,
         tag_data: &Span,
     ) -> Result<(), String> {
-        let tag_text: String = format!("{0},{1}", tag_data.tag, (tag_data.stop-tag_data.start));
+        let config = config::config();
+        let tag_text: String;
+        match config.tag_names {
+            Some(map) => {
+                tag_text = map.get(&tag_data.tag).expect("couldn't find tag name").to_string();
+            }
+            None =>{
+                tag_text = tag_data.tag.to_string();
+            }
+        }
+        let tag_text = format!("{0},{1}", tag_text, (tag_data.stop-tag_data.start));
+
         let surface = font
             .render(&tag_text)
             .blended(Color::RGBA(0, 0, 0, 128))
