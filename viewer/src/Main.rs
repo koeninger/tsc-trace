@@ -294,9 +294,9 @@ impl App {
                                 draw_x = x;
                                 draw_y = y;
                                 draw_data = zone.tag_data;
+                                println!("{0:?}", draw_data);
                             }
                         }
-                        println!("{0:?}", draw_data);
                     }
                     Event::MouseButtonUp { .. } => {
                         draw_x = 0;
