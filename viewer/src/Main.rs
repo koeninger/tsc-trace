@@ -204,8 +204,8 @@ impl App {
         let config = config::config();
         let tag_text: String;
         match config.tag_names {
-            Some(map) => {
-                tag_text = map.get(&tag_data.tag).unwrap_or_else(tag_data.tag).to_string();
+            Some(hashmap) => {
+                tag_text = hashmap.get(&tag_data.tag).map(|s| s.to_string()).unwrap_or_else(||{tag_data.tag.to_string()});
             }
             None =>{
                 tag_text = tag_data.tag.to_string();
@@ -294,9 +294,9 @@ impl App {
                                 draw_x = x;
                                 draw_y = y;
                                 draw_data = zone.tag_data;
+                                println!("{0:?}", draw_data);
                             }
                         }
-                        println!("{0:?}", draw_data);
                     }
                     Event::MouseButtonUp { .. } => {
                         draw_x = 0;
