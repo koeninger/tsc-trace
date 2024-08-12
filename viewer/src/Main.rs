@@ -64,6 +64,7 @@ pub struct App {
 
 impl App {
     pub fn new(filled_spans: &mut Vec<Span>) -> Result<App, String> {
+        let config = config::config();
         let mut spans: Vec<Span> = vec![];
         for span in filled_spans {
             spans.push(*span);
@@ -76,8 +77,8 @@ impl App {
         let min_start = spans[0].start;
         let max_stop = spans.iter().max_by_key(|s| s.stop).unwrap().stop;
         let draw_zones: Vec<Area> = vec![];
-        let window_width = 1600u32;
-        let window_height = 600u32;
+        let window_width = config.window_width;
+        let window_height = config.window_height;
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
         let scale = (max_stop - min_start) / window_width as u64;
@@ -408,9 +409,8 @@ pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
                 if s.tag >= tag_start
                     && s.tag <= tag_stop
                 {
-                    let min_start = s.start;
-                    while s.start <= saturating_add(span_stop){
-                        if s.start >= saturating_add(span_start)
+                    while s.start <= span_stop{
+                        if s.start >= span_start
                             && s.tag >= tag_start
                             && s.tag <= tag_stop
                         {

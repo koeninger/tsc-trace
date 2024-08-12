@@ -19,4 +19,6 @@ pub fn config() -> ViewerConfig {
 pub struct ViewerConfig {
     pub tag_names: Option<HashMap<u64, String>>,
     pub default_args: [String; 4],
+    pub window_width: u32,
+    pub window_height: u32,
 }
