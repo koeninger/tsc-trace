@@ -409,8 +409,8 @@ pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
                     && s.tag <= tag_stop
                 {
                     let min_start = s.start;
-                    while s.start <= min_start.saturating_add(span_stop){
-                        if s.start >= min_start.saturating_add(span_start)
+                    while s.start <= saturating_add(span_stop){
+                        if s.start >= saturating_add(span_start)
                             && s.tag >= tag_start
                             && s.tag <= tag_stop
                         {
