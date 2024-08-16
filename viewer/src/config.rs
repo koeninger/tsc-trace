@@ -21,4 +21,6 @@ pub struct ViewerConfig {
     pub default_args: [String; 4],
     pub window_width: u32,
     pub window_height: u32,
+    pub span_height: i32,
+    pub span_spacing: i32,
 }
