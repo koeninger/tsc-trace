@@ -300,7 +300,7 @@ impl App {
                                 draw_x = x;
                                 draw_y = y;
                                 draw_data = zone.tag_data;
-                                println!("{0:?}", draw_data);
+                                println!("{0:?}, size: {1:?}", draw_data, draw_data.stop-draw_data.start);
                             }
                         }
                     }
