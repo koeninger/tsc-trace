@@ -11,7 +11,7 @@ pub fn config() -> ViewerConfig {
     let cfg = config_builder()
         .build()
         .and_then(|b| b.try_deserialize::<ViewerConfig>())
-        .expect("tag name configuration failed");
+        .expect("configuration failed");
     cfg
 }
 
