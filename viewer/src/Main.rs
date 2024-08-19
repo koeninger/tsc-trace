@@ -183,9 +183,7 @@ impl App {
     fn x_pos(&self, span: &Span) -> i32 {
         ((span.start - self.min_start) / (self.scale + 1))
             .try_into()
-            .unwrap_or_else(|e| {
-                panic!("bad x_pos for scale {} span {:?} err {e}", self.scale, span)
-            })
+            .unwrap_or_else(|_| i32::MAX)
     }
 
     fn y_pos(&self, span: &Span) -> i32 {
