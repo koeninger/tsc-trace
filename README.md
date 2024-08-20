@@ -26,7 +26,7 @@ Run e.g. `cargo bench --features "tsc-trace/capacity_1_million"` to show the run
 
 ## Viewer
 
-Dependency on SDL2 (https://crates.io/crates/sdl2) and bytemuck (https://crates.io/crates/bytemuck).
+Dependency on SDL2 and ttf. Instructions for installation can be found at (https://crates.io/crates/sdl2).
 
 A visual representation of cycles gathered by tsc-trace.
 
@@ -34,14 +34,15 @@ Takes a file that has traces written to it by write_traces_binary through comman
 (file path) (span range start) (span range stop) (tag range start) (tag range stop)
 
 File path is required, start arguments will default to 0 and stop arguments will default to u64::MAX if not provided.
+The default arguments can be changed by editing config.js.
 
-The span start and stop ranges are in number of clock cycles after the start of the first trace in the file.
+The span start and stop ranges are in number of clock cycles.
 
 Use Q, W, E to zoom out, in, and reset.
 
-Use A, S, D to move right, left, and reset.
+Use A, S, D to move left, right, and reset.
 
-Clicking on span will display the tag and span length. This will not work in instances where spans are so small that multiple may be drawn per pixel.
-(these instances are represented by a lighter colorset being used)
+Tag numbers can be replaced with strings (to "name" tags) by editing config.js.
 
-Tag numbers can be replaced with strings by editing config.js.
+Clicking on a span will display the tag number (or name) and span length, as well as printing the standard tag csv tag representation to stdout. 
+This will not work in instances where spans are so small that multiple may be drawn per pixel. This is represented by a lighter colorset being used for the span.

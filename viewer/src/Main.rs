@@ -1,6 +1,5 @@
 pub mod config;
 
-use std::collections::HashMap;
 use bytemuck::Pod;
 use bytemuck::Zeroable;
 use sdl2::event::{Event, WindowEvent};
@@ -10,6 +9,7 @@ use sdl2::rect::Rect;
 use sdl2::render::{TextureCreator, WindowCanvas};
 use sdl2::ttf::Font;
 use sdl2::video::WindowContext;
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -64,6 +64,7 @@ pub struct App {
 
 impl App {
     pub fn new(filled_spans: &mut Vec<Span>) -> Result<App, String> {
+        let config = config::config();
         let mut spans: Vec<Span> = vec![];
         for span in filled_spans {
             spans.push(*span);
@@ -76,8 +77,8 @@ impl App {
         let min_start = spans[0].start;
         let max_stop = spans.iter().max_by_key(|s| s.stop).unwrap().stop;
         let draw_zones: Vec<Area> = vec![];
-        let window_width = 1600u32;
-        let window_height = 600u32;
+        let window_width = config.window_width;
+        let window_height = config.window_height;
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
         let scale = (max_stop - min_start) / window_width as u64;
@@ -125,8 +126,8 @@ impl App {
             sdl_context,
             canvas,
             scale,
-            span_height: 15,
-            span_spacing: 2,
+            span_height: config.span_height,
+            span_spacing: config.span_spacing,
             min_start,
             max_stop,
             scroll: 0,
@@ -205,13 +206,16 @@ impl App {
         let tag_text: String;
         match config.tag_names {
             Some(hashmap) => {
-                tag_text = hashmap.get(&tag_data.tag).map(|s| s.to_string()).unwrap_or_else(||{tag_data.tag.to_string()});
+                tag_text = hashmap
+                    .get(&tag_data.tag)
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| tag_data.tag.to_string());
             }
-            None =>{
+            None => {
                 tag_text = tag_data.tag.to_string();
             }
         }
-        let tag_text = format!("{0},{1}", tag_text, (tag_data.stop-tag_data.start));
+        let tag_text = format!("{0},{1}", tag_text, (tag_data.stop - tag_data.start));
 
         let surface = font
             .render(&tag_text)
@@ -237,7 +241,11 @@ impl App {
         let mut keycount: i32 = 0;
         let mut draw_x = 0;
         let mut draw_y = 0;
-        let mut draw_data = Span {tag:0,start:0,stop:0};
+        let mut draw_data = Span {
+            tag: 0,
+            start: 0,
+            stop: 0,
+        };
         let mut all_spans_map: HashMap<i32, i32> = HashMap::new();
         let mut most_recent_spans: Vec<Position> = vec![];
 
@@ -366,24 +374,25 @@ impl App {
 
 pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
     let mut spans = vec![];
+    let config = config::config();
     match args.len() {
         1 => {panic!("Command line arguments were not provided. Format: (file path) (span range start) (span range stop) (tag range start) (tag range stop).")},
         //loading default arguments as long as the file path is provided
         2 => {
-            args.push(0.to_string());
+            args.push(config.default_args[0].clone());
             spans = load_args(args);
         },
         3 => {
-            args.push(u64::MAX.to_string());
+            args.push(config.default_args[1].clone());
             spans = load_args(args);
         },
         4 => {
-            args.push(0.to_string());
+            args.push(config.default_args[2].clone());
             spans = load_args(args);
         },
         5 => {
             println!("One or more arguments not provided. Running with defaults for missing values.");
-            args.push(u64::MAX.to_string());
+            args.push(config.default_args[3].clone());
             spans = load_args(args);
         },
         6 =>{
@@ -400,9 +409,8 @@ pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
                 if s.tag >= tag_start
                     && s.tag <= tag_stop
                 {
-                    let min_start = s.start;
-                    while s.start <= min_start.saturating_add(span_stop){
-                        if s.start >= min_start.saturating_add(span_start)
+                    while s.start <= span_stop{
+                        if s.start >= span_start
                             && s.tag >= tag_start
                             && s.tag <= tag_stop
                         {
