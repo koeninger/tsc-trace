@@ -305,7 +305,7 @@ impl App {
                             }
                         }
                         if draw_x == 0 && draw_y == 0{
-                            //calculate approx. position
+                            println!("tag: {0:?}, position: ~{1:?}", y / (self.span_spacing + self.span_height), self.min_start as i64 + x as i64 * self.scale as i64);
                         }
                     }
                     Event::MouseButtonUp { .. } => {
