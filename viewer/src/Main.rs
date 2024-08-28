@@ -95,6 +95,7 @@ impl App {
             .map_err(|e| e.to_string())?;
         let canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
         let texture_creator = canvas.texture_creator();
+        println!("Representing {0} clock cycles in {1} pixels for {2} cycles/pixel.", max_stop - min_start, window_width, scale);
 
         Ok(App {
             texture_creator,
@@ -183,9 +184,7 @@ impl App {
     fn x_pos(&self, span: &Span) -> i32 {
         ((span.start - self.min_start) / (self.scale + 1))
             .try_into()
-            .unwrap_or_else(|e| {
-                panic!("bad x_pos for scale {} span {:?} err {e}", self.scale, span)
-            })
+            .unwrap_or_else(|_| i32::MAX)
     }
 
     fn y_pos(&self, span: &Span) -> i32 {
@@ -302,8 +301,11 @@ impl App {
                                 draw_x = x;
                                 draw_y = y;
                                 draw_data = zone.tag_data;
-                                println!("{0:?}", draw_data);
+                                println!("{0:?}, size: {1:?}", draw_data, draw_data.stop-draw_data.start);
                             }
+                        }
+                        if draw_x == 0 && draw_y == 0{
+                            println!("tag: {0:?}, position: ~{1:?}", y / (self.span_spacing + self.span_height), self.min_start as i64 + x as i64 * self.scale as i64);
                         }
                     }
                     Event::MouseButtonUp { .. } => {
@@ -398,6 +400,7 @@ pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
         6 =>{
             let mut file = File::open(&args[1]).expect("failed to open file");
             let mut buffer = [0; 24];
+            println!("Reading trace file...");
             let span_start = args[2].parse::<u64>().expect("Could not parse span range start");
             let span_stop = args[3].parse::<u64>().expect("Could not parse span range stop");
             let tag_start = args[4].parse::<u64>().expect("Could not parse tag range start");
@@ -436,6 +439,7 @@ pub fn load_args(mut args: Vec<String>) -> Vec<Span> {
 
 pub fn main() -> Result<(), String> {
     let mut filled_spans = load_args(env::args().collect::<Vec<String>>());
+    println!("App starting...");
     let mut app = App::new(&mut filled_spans)?;
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
     let font_path: &Path = Path::new(&"fonts/Opensans-Regular.ttf");
